@@ -1,0 +1,178 @@
+/* ==========================================================================
+   SnappShop — Token Design System & 3D Exploded View
+   ========================================================================== */
+
+:root {
+    --snapp-magenta: #FF00A6;
+    --snapp-magenta-hover: #E00092;
+    --snapp-light: #FFF0F8;
+    --snapp-dark: #A3006A;
+}
+
+/* Scrollbar hider */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Active vendor ring */
+.vendor-active-ring {
+    border: 2px solid var(--snapp-magenta);
+    box-shadow: 0 4px 14px rgba(255, 0, 166, 0.15);
+    background-color: var(--snapp-light);
+    transform: scale(0.98);
+}
+
+/* Vendor badge */
+.vendor-badge {
+    display: inline-flex; align-items: center; gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(255,255,255,0.9);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    border-radius: 0.5rem; color: #1F2937;
+    font-size: 0.65rem; font-weight: 700;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.delivery-time-indicator {
+    display: flex; align-items: center; gap: 0.25rem;
+    color: #6B7280; font-size: 0.65rem; font-weight: 700;
+}
+
+.discount-tag {
+    background: linear-gradient(135deg, #FF00A6, #EF4444);
+    color: white; font-weight: 900; font-size: 0.65rem;
+    padding: 0.125rem 0.375rem; border-radius: 0.375rem;
+    box-shadow: 0 2px 6px rgba(239,68,68,0.25);
+}
+
+/* Cart clear confirm modal */
+.cart-confirm-modal { animation: modalPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+@keyframes modalPop { 0% { transform: scale(0.92); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* Story ring */
+@keyframes rotateStoryGradient { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+.story-active-ring {
+    background: linear-gradient(45deg, #FF00A6, #FF7A00, #FFD600, #E11D48);
+    background-size: 200% 200%;
+    animation: rotateStoryGradient 4s linear infinite;
+}
+
+/* Generic spinner */
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+/* ==========================================================================
+   3D EXPLODED VIEW — RESPONSIVE LAYOUT & RTL FIXES
+   ========================================================================== */
+
+/* Dynamic viewport scaling for mobile */
+.exploded-overlay, .exploded-viewport {
+    height: 100vh; /* Fallback */
+    height: 100dvh;
+}
+
+.exploded-overlay {
+    -webkit-overflow-scrolling: touch; /* Momentum scrolling on iOS */
+}
+
+/*
+ * The main container must be strictly LTR so that physical placement of Text, Line,
+ * and Dot aligns with physical 3D space, ignoring the root <html> RTL flow.
+ */
+.exploded-label {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Vazirmatn', system-ui, sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.9), 0 0 16px rgba(0,0,0,0.5);
+    white-space: nowrap;
+    pointer-events: none;
+    will-change: transform, opacity, left, top;
+    transition: opacity 0.2s linear;
+    opacity: 0;
+    direction: ltr !important; /* CRITICAL FIX: Forces strict LTR flex layout */
+}
+
+/*
+ * The text badge inside the label must be RTL so Persian typography renders
+ * cleanly, aligned properly, with correct punctuation.
+ */
+.exploded-label .exp-text {
+    display: inline-block;
+    padding: 4px 10px;
+    background: linear-gradient(135deg, rgba(20,20,30,0.9), rgba(30,30,45,0.8));
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    letter-spacing: 0.2px;
+    direction: rtl; /* CRITICAL FIX: Restore Persian formatting */
+    text-align: center;
+}
+
+.exploded-label .exp-line {
+    display: inline-block;
+    width: 40px;
+    height: 1px;
+    box-shadow: 0 0 8px rgba(255,0,166,0.6);
+}
+
+/* Gradients for the connecting line depending on label side */
+.exploded-label[data-side="left"] .exp-line {
+    /* Left side labels: Text -> Line -> Dot. Line fades from text out to the dot */
+    background: linear-gradient(90deg, rgba(255,0,166,0) 0%, rgba(255,0,166,0.9) 100%);
+}
+
+.exploded-label[data-side="right"] .exp-line {
+    /* Right side labels: Dot -> Line -> Text. Line fades from dot out to the text */
+    background: linear-gradient(90deg, rgba(255,0,166,0.9) 0%, rgba(255,0,166,0) 100%);
+}
+
+.exploded-label .exp-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 9999px;
+    background: #FF00A6;
+    box-shadow:
+        0 0 0 2px rgba(255,0,166,0.25),
+        0 0 12px rgba(255,0,166,0.9);
+    animation: labelDotPulse 2s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+@keyframes labelDotPulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(255,0,166,0.25), 0 0 12px rgba(255,0,166,0.9); }
+    50%      { box-shadow: 0 0 0 5px rgba(255,0,166,0.10), 0 0 18px rgba(255,0,166,1.0); }
+}
+
+/* Canvas — crisp rendering */
+.exploded-viewport canvas {
+    display: block !important;
+    outline: none;
+}
+
+/* ==========================================================================
+   MOBILE ADAPTIVE ADJUSTMENTS
+   ========================================================================== */
+@media (max-width: 640px) {
+    .exploded-label {
+        gap: 6px;
+        font-size: 10px;
+    }
+    .exploded-label .exp-text {
+        padding: 3px 7px;
+        border-radius: 6px;
+        font-size: 10px;
+    }
+    .exploded-label .exp-line {
+        width: 20px;
+    }
+    .exploded-label .exp-dot {
+        width: 6px;
+        height: 6px;
+    }
+}

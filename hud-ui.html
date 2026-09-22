@@ -1,0 +1,64 @@
+<!-- Inject inside <main> of index.html -->
+<div class="hud-overlay" id="hud-burger-1">
+    
+    <header class="telemetry-header">
+        <div class="sys-data">SYS.ID: <span>WAGYU-GLD-01</span></div>
+        <div class="stock-status blink">LIMITED ALLOCATION</div>
+    </header>
+
+    <div class="title-container">
+        <h1>THE WAGYU GOLD ROYALE</h1>
+        <p class="subtitle">Peak Decadence. Edible 24k Gold. A5 Grade Profile.</p>
+    </div>
+
+    <!-- Exploded View Targeting Labels -->
+    <div class="target-labels" style="opacity: 0;"> <!-- Shown via GSAP -->
+        <div class="t-node" id="n-bun"><span>01</span> Toasted Brioche & Sesame</div>
+        <div class="t-node" id="n-gold"><span>02</span> 24k Edible Gold Leaf Flakes</div>
+        <div class="t-node" id="n-mayo"><span>03</span> Whipped Black Truffle Mayo</div>
+        <div class="t-node" id="n-tomato"><span>04</span> Crimson Heirloom Tomato</div>
+        <div class="t-node" id="n-cheese"><span>05</span> 12-Month Vintage Cheddar</div>
+        <div class="t-node" id="n-patty"><span>06</span> 8oz Smashed A5 Wagyu</div>
+        <div class="t-node" id="n-onion"><span>07</span> Balsamic Sweet Onions</div>
+    </div>
+
+    <div class="nutrition-panel">
+        <div class="stat-row"><span class="label">UMAMI INDEX</span><span class="bar"><div style="width: 98%;"></div></span></div>
+        <div class="stat-row"><span class="label">RICHNESS</span><span class="bar"><div style="width: 95%;"></div></span></div>
+        <div class="stat-row"><span class="label">TEXTURE</span><span class="bar"><div style="width: 88%;"></div></span></div>
+    </div>
+
+</div>
+
+<style>
+/* Futuristic Luxury HUD CSS */
+.hud-overlay {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    pointer-events: none; padding: 2rem; z-index: 10;
+    font-family: 'Inter', monospace; color: #fff;
+}
+.telemetry-header {
+    display: flex; justify-content: space-between;
+    font-size: 0.75rem; letter-spacing: 2px; border-bottom: 1px solid rgba(255,215,0,0.3);
+    padding-bottom: 10px;
+}
+.sys-data span { color: #ffd700; }
+.blink { animation: flash 2s infinite; color: #ff4444; }
+@keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.title-container { margin-top: 5vh; max-width: 500px; }
+.title-container h1 { font-family: 'Playfair Display', serif; font-size: 4rem; color: #ffd700; margin-bottom: 10px; line-height: 1; }
+.subtitle { color: #aaa; font-size: 1rem; text-transform: uppercase; letter-spacing: 1.5px; }
+
+.target-labels {
+    position: absolute; right: 5%; top: 20%;
+    display: flex; flex-direction: column; gap: 8vh; text-align: right;
+}
+.t-node { font-size: 0.85rem; letter-spacing: 1px; color: #ddd; display: flex; align-items: center; justify-content: flex-end; gap: 10px;}
+.t-node span { color: #ffd700; font-weight: bold; font-size: 0.7rem; border: 1px solid #ffd700; padding: 2px 4px; }
+
+.nutrition-panel { position: absolute; bottom: 3rem; left: 2rem; width: 250px; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-size: 0.7rem; }
+.bar { flex-grow: 1; margin-left: 15px; height: 2px; background: rgba(255,255,255,0.1); }
+.bar div { height: 100%; background: #ffd700; box-shadow: 0 0 10px #ffd700; }
+</style>
