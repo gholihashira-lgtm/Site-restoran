@@ -2,6 +2,8 @@
    script_2.js — Loghme Advanced 3D Engine + LoghmeYar AI Concierge
    ============================================================ */
 
+import { generateDish3D, disposeDishGroup, getRecipe } from './procedural-food-generator.js';
+
 /* ---------- Styles injection ---------- */
 (function injectLoghmeYarStyles() {
     if (typeof document === 'undefined') return;
@@ -602,6 +604,7 @@ export class ExplodedViewBuilder {
         this.ready = false;
         this.isFlatDish = false;
         this.responsiveBaseZ = 11;
+        this.usesProcedural = false;
 
         this.dragActive = false;
         this.dragStartY = 0;
@@ -686,12 +689,12 @@ export class ExplodedViewBuilder {
         this.footer.innerHTML = `
             <div class="min-w-0 flex-1 ml-3">
                 <h3 class="text-white font-black text-sm mb-1 truncate">${lyEscape(this.product.title)}</h3>
-                <div class="text-snapp font-black text-lg leading-none" style="color:#FF4747;">
+                <div class="font-black text-lg leading-none" style="color:#FF4747;">
                     ${lyFormatPrice(this.product.price)}
                     <span class="text-[10px] text-gray-400 font-normal">تومان</span>
                 </div>
             </div>
-            <button id="exploded-add-btn" class="bg-snapp hover:bg-snapp-hover text-white text-xs font-black px-6 py-3.5 rounded-2xl shadow-2xl shadow-pink-500/40 flex items-center gap-2 active:scale-95 transition-transform pointer-events-auto shrink-0 min-h-[44px]" style="background:#FF4747;">
+            <button id="exploded-add-btn" class="text-white text-xs font-black px-6 py-3.5 rounded-2xl flex items-center gap-2 active:scale-95 transition-transform pointer-events-auto shrink-0 min-h-[44px]" style="background:#FF4747;">
                 <i data-lucide="shopping-bag" class="w-4 h-4"></i>
                 افزودن به سبد
             </button>
@@ -805,48 +808,20 @@ export class ExplodedViewBuilder {
     }
 
     async buildModel() {
-        let mod;
-        let result;
-        this.isFlatDish = false;
-
-        if (this.product.id === 4 || this.product.title.includes('بندری')) {
-            mod = await import('./bandari-stack.js');
-            result = mod.buildBandari3D(this.scene);
-        } else if (this.product.id === 1) {
-            mod = await import('./burger-classic.js');
-            result = mod.buildClassicBurger3D(this.scene);
-        } else if (this.product.id === 2) {
-            mod = await import('./burger-smash.js');
-            result = mod.buildSmashBurger3D(this.scene);
-        } else if (this.product.categoryId === 'pizza' || this.product.title.includes('پیتزا')) {
-            mod = await import('./pizza-stack.js');
-            result = mod.buildPizza3D(this.scene);
+        const category = this.product.categoryId || 'burgers';
+        if (['pizza', 'kebab', 'ash', 'traditional', 'appetizers'].includes(category)) {
             this.isFlatDish = true;
-        } else if (this.product.categoryId === 'burgers') {
-            mod = await import('./burger-mushroom.js');
-            result = mod.buildMushroomBurger3D(this.scene);
         } else {
-            mod = await import('./geometry-stack.js');
-            this.geoMod = mod;
-            mod.explosionLayers.length = 0;
-            while (mod.burgerGroup.children.length > 0) mod.burgerGroup.remove(mod.burgerGroup.children[0]);
-            mod.buildProduct3D(this.scene, this.product);
-            result = { group: mod.burgerGroup, layers: mod.explosionLayers };
-            if (['pizza', 'kebab', 'ash', 'traditional', 'appetizers'].includes(this.product.categoryId)) {
-                this.isFlatDish = true;
-            }
+            this.isFlatDish = false;
         }
 
-        this.geoMod = mod;
+        const result = generateDish3D(this.scene, this.product);
         this.burgerGroup = result.group;
         this.layers = result.layers;
+        this.usesProcedural = true;
 
         if (!this.layers || this.layers.length === 0) {
             throw new Error('هیچ لایه‌ای برای این محصول ساخته نشد.');
-        }
-
-        if (this.burgerGroup.parent !== this.scene) {
-            this.scene.add(this.burgerGroup);
         }
 
         const w = window.innerWidth;
@@ -1145,11 +1120,15 @@ export class ExplodedViewBuilder {
         setTimeout(() => {
             try {
                 if (this.burgerGroup) {
-                    this.burgerGroup.traverse(obj => {
-                        if (obj.geometry && typeof obj.geometry.dispose === 'function') {
-                            obj.geometry.dispose();
-                        }
-                    });
+                    if (this.usesProcedural) {
+                        disposeDishGroup(this.burgerGroup);
+                    } else {
+                        this.burgerGroup.traverse(obj => {
+                            if (obj.geometry && typeof obj.geometry.dispose === 'function') {
+                                obj.geometry.dispose();
+                            }
+                        });
+                    }
                     if (this.burgerGroup.parent) {
                         this.burgerGroup.parent.remove(this.burgerGroup);
                     }
@@ -1789,6 +1768,10 @@ export const LoghmeYarAI = {
         }
         if (!LoghmeYarState.isOpen) LoghmeYarAI.open();
         setTimeout(() => lyAppendBundle(bundle), 380);
+    },
+
+    getRecipe(product) {
+        return getRecipe(product);
     }
 };
 

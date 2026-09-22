@@ -106,7 +106,7 @@ const vendors = [
     }
 ];
 
-const catalogProducts = [
+const baseCatalogProducts = [
     { id: 1, vendorId: 'v1', categoryId: 'burgers', title: 'برگر کلاسیک دست‌ساز ژوبین', desc: 'پتی برگر ۱۰۰ گرمی، کاهو، گوجه، خیارشور و سس مخصوص', price: 288000, originalPrice: 320000, discount: 10, stockLeft: 7, rating: 4.8, reviews: 312, image: 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=500&q=80', addons: [{ id: 'a1', title: 'پنیر چدار اضافه', price: 25000 }] },
     { id: 2, vendorId: 'v1', categoryId: 'burgers', title: 'دوبل چیزبرگر اسمش گودا', desc: 'دو پتی گوشت ۱۲۰ گرمی اسمش‌شده، پنیر گودا ذوب‌شده، پیاز کاراملی', price: 385000, originalPrice: 440000, discount: 12, stockLeft: 5, rating: 4.9, reviews: 580, image: 'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?w=500&q=80', addons: [{ id: 'a2', title: 'بیکن تنوری', price: 35000 }] },
     { id: 3, vendorId: 'v9', categoryId: 'burgers', title: 'ماشروم برگر ترافل', desc: 'پتی گوشت ۱۵۰ گرمی ضخیم، قارچ تفت داده شده با سس ترافل و پنیر موزارلا', price: 340000, originalPrice: 340000, discount: 0, stockLeft: 10, rating: 4.7, reviews: 240, image: 'https://images.unsplash.com/photo-1594212699903-eca40af73ca9?w=500&q=80', addons: [] },
@@ -144,7 +144,7 @@ const catalogProducts = [
     { id: 35, vendorId: 'v1', categoryId: 'appetizers', title: 'سیب‌زمینی بلژیکی با دیپ چدار', desc: 'سیب‌زمینی سرخ‌کرده ترد ادویه‌دار بلژیکی، سس چدار گرم و غلیظ، بیکن گوشت دودی خرد شده', price: 190000, originalPrice: 190000, discount: 0, stockLeft: 12, rating: 4.7, reviews: 420, image: 'https://images.unsplash.com/photo-1585109649139-366815a0d713?w=500&q=80', addons: [] },
     { id: 36, vendorId: 'v6', categoryId: 'appetizers', title: 'موزارلا استیکس سوخاری کش‌دار', desc: '۶ قطعه پنیر موزارلا سوخاری شده با آرد پانکو ژاپنی، سرو همراه با دیپ سس مارینارا دست‌ساز', price: 145000, originalPrice: 160000, discount: 9, stockLeft: 9, rating: 4.5, reviews: 310, image: 'https://images.unsplash.com/photo-1534080564583-6be75777b70a?w=500&q=80', addons: [] },
     { id: 37, vendorId: 'v17', categoryId: 'appetizers', title: 'بال و کتف بوفالو تند', desc: '۸ تکه بال و کتف کباب شده در سس تند بوفالو و سرکه، سرو شده با سس بلو چیز و کرفس', price: 210000, originalPrice: 240000, discount: 12, stockLeft: 5, rating: 4.8, reviews: 680, image: 'https://images.unsplash.com/photo-1524114664604-cd8133cd67ad?w=500&q=80', addons: [] },
-    { id: 38, vendorId: 'v7', categoryId: 'appetizers', title: 'نان سیر تنوری ایتالیایی', desc: 'خمیر نازک پیتزا پخته در تنور، روغن زیتون بکر، سیر رنده شده تازه، جعفری و پنیر پارمزان', price: 110000, originalPrice: 110000, discount: 0, stockLeft: 14, rating: 4.4, reviews: 290, image: 'https://images.unsplash.com/photo-1573140247632-f8fd74997d5c?w=500&q=80', addons: [] },
+    { id: 38, vendorId: 'v7', categoryId: 'appetizers', title: 'نان سیر تنوری ایتالیایی', desc: 'خمیر نازک پیتزا پخته در تنور، روغن زیتون بکر، سیر رنده شده تازه، جعفری و پنیر پارمزان', price: 110000, originalPrice: 110000, discount: 0, stockLeft: 14, rating: 4.4, reviews: 290, image: 'https://images.unsplash.com/photo-1562967914-608f82629710?w=500&q=80', addons: [] },
     { id: 39, vendorId: 'v5', categoryId: 'sweets', title: 'باقلوا نعلی گردویی ۳ عدد', desc: 'باقلوا فرم نعلی استانبولی پخته شده با کره حیوانی، مغز گردو درجه یک، و شربت غلیظ زعفران', price: 96000, originalPrice: 120000, discount: 20, stockLeft: 5, rating: 4.1, reviews: 120, image: 'https://images.unsplash.com/photo-1599598425947-33002629b5fa?w=500&q=80', addons: [] },
     { id: 40, vendorId: 'v5', categoryId: 'sweets', title: 'باقلوا پیتزایی پسته ۳ عدد', desc: 'باقلوا با فرم برشی پیتزایی پر شده با پودر پسته اعلا سبز رفسنجان و کره حیوانی خالص', price: 157250, originalPrice: 185000, discount: 15, stockLeft: 2, rating: 4.8, reviews: 95, image: 'https://images.unsplash.com/photo-1616428784132-75d31562b772?w=500&q=80', addons: [] },
     { id: 41, vendorId: 'v10', categoryId: 'sweets', title: 'کیک شکلاتی فاج خیس', desc: 'برش کیک شکلاتی اسفنجی سه لایه با سس گاناش براق غلیظ و تکه‌های فندق برشته', price: 125000, originalPrice: 140000, discount: 10, stockLeft: 6, rating: 4.9, reviews: 540, image: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=500&q=80', addons: [] },
@@ -160,6 +160,552 @@ const catalogProducts = [
     { id: 101, vendorId: 'v_sweets', categoryId: 'sweets', title: 'باقلوا نعلی گردویی ۳ عدد', desc: 'باقلوا دست‌ساز تازه', price: 96000, originalPrice: 120000, discount: 20, stockLeft: 5, rating: 4.1, reviews: 120, image: 'https://images.unsplash.com/photo-1599598425947-33002629b5fa?w=300&q=80', addons: [] },
     { id: 102, vendorId: 'v_sweets', categoryId: 'sweets', title: 'باقلوا پیتزایی پسته ۳ عدد', desc: 'باقلوا پسته اعلا', price: 157250, originalPrice: 185000, discount: 15, stockLeft: 2, rating: 4.8, reviews: 95, image: 'https://images.unsplash.com/photo-1616428784132-75d31562b772?w=300&q=80', addons: [] }
 ];
+
+const FOOD_IMAGE_POOL = {
+    burgers: [
+        'photo-1568901346375-23c9450c58cd',
+        'photo-1586190848861-99aa4a171e90',
+        'photo-1594212699903-eca40af73ca9',
+        'photo-1553979459-d2229ba7433b',
+        'photo-1550547660-d9450f859349',
+        'photo-1615719413546-198b25453f85',
+        'photo-1605333314051-7871b69d95f8',
+        'photo-1551782450-a2132b4ba21d'
+    ],
+    pizza: [
+        'photo-1628840042765-356cda07504e',
+        'photo-1565299624946-b28f40a0ae38',
+        'photo-1593560708920-61dd98c46a4e',
+        'photo-1513104890138-7c749659a591',
+        'photo-1565299507177-b0ac66763828',
+        'photo-1574071318508-1cdbab80d002',
+        'photo-1595854341625-f33ee10dbf94',
+        'photo-1604382354936-07c5d9983bd3'
+    ],
+    kebab: [
+        'photo-1627012046423-93d39da6a8b7',
+        'photo-1555939594-58d7cb561ad1',
+        'photo-1529193591184-b1d58069ecdd',
+        'photo-1544025162-d76694265947',
+        'photo-1603360946369-dc9bb6258143'
+    ],
+    traditional: [
+        'photo-1588168333986-5078d3ae3976',
+        'photo-1604908176997-125f25cc6f3d',
+        'photo-1631515243349-e0cb75fb8d3a',
+        'photo-1627308595186-b4b3b3cbce20'
+    ],
+    ash: [
+        'photo-1547592180-85f173990554',
+        'photo-1560934057-04870f7f3ed6',
+        'photo-1627308595186-b4b3b3cbce20'
+    ],
+    sandwich: [
+        'photo-1619740455993-9e612b1af08a',
+        'photo-1528735602780-2552fd46c7af',
+        'photo-1590165482129-1b8b27698780',
+        'photo-1509722747041-616f39b57569',
+        'photo-1606755962773-d324e0a13086',
+        'photo-1627308595229-7830f5c9c66e'
+    ],
+    appetizers: [
+        'photo-1585109649139-366815a0d713',
+        'photo-1534080564583-6be75777b70a',
+        'photo-1524114664604-cd8133cd67ad',
+        'photo-1562967914-608f82629710'
+    ],
+    drinks: [
+        'photo-1556881286-fc6915169721',
+        'photo-1622483767028-3f66f32aef97',
+        'photo-1513558161293-cdaf765ed2fd',
+        'photo-1461023058943-07fcbe16d735'
+    ],
+    sweets: [
+        'photo-1599598425947-33002629b5fa',
+        'photo-1616428784132-75d31562b772',
+        'photo-1578985545062-69928b1d9587',
+        'photo-1551024601-bec78aea704b',
+        'photo-1555507036-ab1f40ce88cb',
+        'photo-1587314168485-3236d6710814'
+    ],
+    supermarket: [
+        'photo-1622483767028-3f66f32aef97',
+        'photo-1578916171728-46686eac8d58'
+    ]
+};
+
+function fnvHash(str) {
+    let h = 2166136261 >>> 0;
+    const s = String(str);
+    for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+}
+
+function seededRange(seed, min, max) {
+    return min + (fnvHash(seed) % (max - min + 1));
+}
+
+function makeFoodImage(categoryId, seed) {
+    const pool = FOOD_IMAGE_POOL[categoryId] || FOOD_IMAGE_POOL.burgers;
+    const id = pool[fnvHash(seed) % pool.length];
+    return `https://images.unsplash.com/${id}?w=500&q=80`;
+}
+
+function detectSubtypeFromTitle(title, desc, categoryId) {
+    const t = ((title || '') + ' ' + (desc || '')).toLowerCase();
+    const c = categoryId || 'burgers';
+
+    if (c === 'traditional' || c === 'kebab') {
+        if (/شامی/.test(t)) return 'shami';
+        if (/ته\s*چین/.test(t)) return 'tahchin';
+        if (/قورمه|فسنجان|خورش|آلو\s*اسفناج|کرفس|قیمه\s*بادمجان/.test(t)) return 'stew';
+        if (/قیمه\s*نثار|قیمه/.test(t)) return 'rice';
+        if (/کوبیده/.test(t)) return 'koobideh';
+        if (/جوجه/.test(t)) return 'joojeh';
+        if (/چنجه/.test(t)) return 'chenjeh';
+        if (/شیشلیک/.test(t)) return 'shishlik';
+        if (/برگ|راسته/.test(t)) return 'barg';
+        if (/لقمه/.test(t)) return 'koobideh';
+        if (/بختیاری|سلطانی|میکس|مخلوط/.test(t)) return 'kebab';
+        if (/پلو|چلو|کته|زرشک/.test(t)) return 'rice';
+        if (/کباب|دیس|بشقاب|پرس/.test(t)) return 'kebab';
+        return c === 'kebab' ? 'kebab' : 'stew';
+    }
+    if (c === 'ash') {
+        if (/حلیم/.test(t)) return 'halim';
+        if (/رشته/.test(t)) return 'reshteh';
+        if (/جو/.test(t)) return 'jo';
+        if (/دوغ/.test(t)) return 'ashDoogh';
+        if (/شله/.test(t)) return 'ashShole';
+        return 'reshteh';
+    }
+    if (c === 'burgers') {
+        if (/چیکن|کریسپی|سوخاری/.test(t)) return 'crispyChicken';
+        if (/دوبل|دو\s*پتی|دوگانه/.test(t)) return 'doubleSmash';
+        if (/وگان|گیاهی|گیاه/.test(t)) return 'vegan';
+        if (/بندری/.test(t)) return 'bandari';
+        if (/واگیو/.test(t)) return 'thickSirloin';
+        return 'classic';
+    }
+    if (c === 'pizza') {
+        if (/پپرونی/.test(t)) return 'pepperoni';
+        if (/چهار\s*پنیر|چهارپنیر/.test(t)) return 'fourCheese';
+        if (/مارگاریتا|سبزیجات|روستیکا|ریحان/.test(t)) return 'veggie';
+        if (/بلوچیز/.test(t)) return 'fourCheese';
+        if (/باربیکیو|پیکانته|آتشین|تند/.test(t)) return 'pepperoni';
+        return 'classicPizza';
+    }
+    if (c === 'sandwich') {
+        if (/بندری/.test(t)) return 'bndari';
+        if (/هات\s*داگ|هاتداگ/.test(t)) return 'hotdog';
+        if (/باگت|رست\s*بیف|بیف/.test(t)) return 'baguette';
+        if (/ژامبون\s*سرد|هایدا|سرد/.test(t)) return 'coldSandwich';
+        if (/فیله\s*مرغ|زینگر|مرغ\s*گریل|شنیسل/.test(t)) return 'chickenSandwich';
+        if (/مغز|زبان/.test(t)) return 'baguette';
+        return 'sandwich';
+    }
+    if (c === 'appetizers') {
+        if (/سیب\s*زمینی|چیپسی|قاچی|بلژیکی|سرخ\s*کرده/.test(t)) return 'fries';
+        if (/بال|پاچینی|وینگز|بوفالو/.test(t)) return 'wings';
+        if (/موزارلا|استیکس|کروکت/.test(t)) return 'mozzSticks';
+        if (/نان\s*سیر|پارمزان/.test(t)) return 'garlicBread';
+        return 'fries';
+    }
+    if (c === 'drinks' || c === 'supermarket') {
+        if (/نوشابه|کوکاکولا|فانتا|پپسی/.test(t)) return 'soda';
+        if (/لیموناد/.test(t)) return 'lemonade';
+        if (/موهیتو|نعنا/.test(t)) return 'mint';
+        if (/قهوه|لاته|اسپرسو|کلد\s*برو/.test(t)) return 'coffee';
+        if (/چای/.test(t)) return 'tea';
+        if (/شیک|اسموتی/.test(t)) return 'shake';
+        if (/آبمیوه|پرتقال|سیب\s*طبیعی|انار/.test(t)) return 'juice';
+        if (/آب\s*معدنی|آب\s*خنک/.test(t)) return 'water';
+        if (/دوغ/.test(t)) return 'juice';
+        return 'genericDrink';
+    }
+    if (c === 'sweets') {
+        if (/باقلوا/.test(t)) return 'baklava';
+        if (/کروسان/.test(t)) return 'croissant';
+        if (/چیزکیک/.test(t)) return 'cheesecake';
+        if (/شکلاتی|فاج|براونی|گاناش/.test(t)) return 'chocolateCake';
+        if (/وانیلی|اسفنجی/.test(t)) return 'vanillaCake';
+        if (/شله|زرد/.test(t)) return 'genericSweet';
+        return 'genericSweet';
+    }
+    return c;
+}
+
+const CATEGORY_NAME_BUILDERS = {
+    burgers: {
+        prefixes: ['برگر', 'چیزبرگر', 'دوبل برگر', 'همبرگر', 'چیکن برگر', 'اسلایدر', 'تاور برگر', 'بیف برگر', 'برگر گیاهی', 'برگر زغالی'],
+        suffixes: [
+            'گودا ممتاز', 'چدار ذوب‌شده', 'زغالی دودی', 'اسموکی BBQ', 'ماشروم ترافل',
+            'کاراملی پیاز', 'اسپایسی مکزیکی', 'بیکن پنیری', 'پنیر بلوچیز', 'رویال کلاسیک',
+            'شکم‌پر واگیو', 'آتشین تگزاسی', 'وگان گیاهی', 'سیر و پارمزان', 'پیکانته دودی',
+            'دو پتی ویژه', 'کاراملی هانی', 'پنیر و قارچ', 'مخصوص سرآشپز', 'کنجدی چدار',
+            'سس ترافل', 'چیلی آمریکایی', 'میکس پنیر', 'رویال رویال', 'سلطان برگر',
+            'کاراملی هالوپینو', 'بی‌نظیر ویژه', 'طلایی سوخاری', 'چهار پنیر', 'پیکانته چیلی'
+        ],
+        descs: [
+            'پتی دست‌ساز آبدار با نان تازه و سس مخصوص سرآشپز',
+            'گوشت گریل‌شده با ادویه مخصوص و سبزیجات تازه فصل',
+            'پنیر ذوب‌شده روی پتی داغ با نان کنجدی برشته',
+            'طعم دودی و بی‌نظیر با سس مخصوص خانه و ادویه‌های ویژه',
+            'ترکیب خاص مواد اولیه تازه و نان تست‌شده در تنور',
+            'پتی ضخیم گوشت با پنیر کش‌دار و سس مخصوص سرآشپز',
+            'گوشت واگیو گریل‌شده با سبزیجات کاراملی و سس ویژه'
+        ],
+        priceMin: 180000,
+        priceRange: 250000
+    },
+    pizza: {
+        prefixes: ['پیتزا', 'پیتزا تنوری', 'پیتزا ایتالیایی', 'پیتزا ناپلی', 'پیتزا رومی', 'پیتزا سنگ‌پز', 'پیتزا خانگی', 'پیتزا ویژه'],
+        suffixes: [
+            'مارگاریتا کلاسیک', 'پپرونی کاسه‌ای', 'چهار پنیر', 'روستیکا سبزیجات',
+            'سیر و استیک', 'تنوری مکزیکی', 'پنیر و قارچ', 'پروشوتو رولا',
+            'ناپلی سنتی', 'سیر و ریحان', 'خورشتی ایرانی', 'مرغ و ذرت',
+            'سبزیجات فصل', 'پنیر بلوچیز', 'سوسیس و پنیر', 'قارچ مخصوص',
+            'بیف پیکانته', 'کاربونارا', 'خانوادگی', 'پیکانته آتشین',
+            'سیسیلی', 'دیترویت', 'رول ایتالیایی', 'پپرونی سیر',
+            'بلوچیز و گردو', 'ریکوتا و اسفناج', 'باربیکیو مرغ', 'پنیر بزی'
+        ],
+        descs: [
+            'خمیر دست‌ساز ناپلی با فرآورده‌های تازه و پنیر کش‌دار',
+            'تاپینگ‌های متنوع روی خمیر پفکی تنوری سنگ‌پز',
+            'ترکیب خاص سس و پنیر با طعم بی‌نظیر ایتالیایی',
+            'پخته شده در تنور سنگی با چوب طبیعی برای طعم دودی',
+            'خمیر تخمیر طبیعی ۴۸ ساعته با لبه‌های برشته و پفکی',
+            'سس مخصوص خانگی با ادویه‌های تازه و گیاهان معطر'
+        ],
+        priceMin: 220000,
+        priceRange: 220000
+    },
+    kebab: {
+        prefixes: ['چلو کباب', 'کباب', 'دیس کباب', 'بشقاب کباب', 'کباب مخصوص', 'کباب سنتی', 'کباب اعلا', 'پرس کباب'],
+        suffixes: [
+            'کوبیده مخصوص', 'جوجه زعفرانی', 'برگ راسته', 'چنجه گوساله',
+            'شیشلیک دنده', 'بختیاری مخلوط', 'لقمه نجفی', 'جوجه بدون استخوان',
+            'ترش گیلانی', 'سلطانی دو رنگ', 'کوبیده گیاهی', 'مرغ مخصوص',
+            'دنده بره', 'سولطانی ویژه', 'چرخ‌کرده سرآشپز', 'میکس گوشت',
+            'گوسفندی خالص', 'بزی محلی', 'شیش ممتاز', 'رویال شاندیز'
+        ],
+        descs: [
+            'گوشت تازه چرخ‌کرده با پیاز رنده شده و ادویه مخصوص',
+            'مرینیت‌شده در زعفران ناب با کره محلی و آبلیمو',
+            'کباب شده روی زغال طبیعی با عطر دودی بی‌نظیر',
+            'سرو با چلوی زعفرانی ایرانی و گوجه کبابی ذغالی',
+            'گوشت گوسفندی ممتاز با چربی طبیعی و طعم اصیل ایرانی',
+            'دورچین کامل با برنج طارم درجه یک و کره محلی'
+        ],
+        priceMin: 280000,
+        priceRange: 350000
+    },
+    traditional: {
+        prefixes: ['خورش', 'پلو', 'کته', 'چلو', 'خوراک', 'بشقاب', 'دیس', 'مخصوص'],
+        suffixes: [
+            'ته چین زعفرانی', 'قورمه سبزی', 'قیمه نثار قزوینی', 'فسنجان',
+            'باقالی پلو', 'زرشک پلو با مرغ', 'آلبالو پلو', 'عدس پلو',
+            'سبزی پلو با ماهی', 'لوبیا پلو', 'کرفس مخصوص', 'بادمجان',
+            'آلو اسفناج', 'کشک بادمجان', 'میرزاقاسمی', 'حلیم بادمجان',
+            'کوکو سبزی', 'شامی کباب', 'دلمه برگ مو', 'آش سماق'
+        ],
+        descs: [
+            'غذای اصیل ایرانی با برنج طارم و ادویه‌های سنتی',
+            'خورشت جاافتاده با گوشت تازه و روغن حیوانی محلی',
+            'پخته شده به روش سنتی با سبزیجات تازه فصل',
+            'طعم خانگی اصیل با مواد اولیه درجه یک و برنج ایرانی',
+            'سرو با دورچین سنتی و طعم بی‌نظیر خانه'
+        ],
+        priceMin: 180000,
+        priceRange: 200000
+    },
+    ash: {
+        prefixes: ['آش', 'کاسه آش', 'بشقاب آش', 'آش سنتی', 'آش مخصوص', 'حلیم'],
+        suffixes: [
+            'رشته', 'دوغ تبریزی', 'شله قلمکار', 'ماش', 'سیرابی',
+            'گندم', 'بادمجان', 'جو', 'اوماج', 'کلم',
+            'آنار', 'گوشت گوسفندی', 'سماق', 'کشک', 'غوره',
+            'حبوبات کامل', 'مخصوص عمه', 'سنتی شیرازی', 'مخصوص سرآشپز', 'خانگی'
+        ],
+        descs: [
+            'آش سنتی غلیظ با حبوبات کامل و کشک محلی',
+            'طعم اصیل خانگی با نعناداغ و پیازداغ فراوان',
+            'پخته شده به روش سنتی با سبزیجات کوهی و ادویه اصیل',
+            'سرو گرم با کشک و روغن محلی درجه یک و نان تازه',
+            'غذای اصیل ایرانی با مواد اولیه تازه و طعم خانگی'
+        ],
+        priceMin: 90000,
+        priceRange: 110000
+    },
+    sandwich: {
+        prefixes: ['ساندویچ', 'باگت', 'هات‌داگ', 'نان ساندویچی', 'پرس ساندویچ', 'رول'],
+        suffixes: [
+            'بندری تند', 'ژامبون ویژه', 'رست بیف اعلا', 'فیله مرغ',
+            'پنیری داغ', 'سوسیس آلمانی', 'کالباس مخصوص', 'مغز و زبان',
+            'کباب مخصوص', 'شنیسل مرغ', 'همبرگر ویژه', 'سوخاری کریسپی',
+            'ژامبون سرد', 'کوکتل پنیری', 'مرغ گریل', 'بیکن و پنیر',
+            'سیب‌زمینی و پنیر', 'قارچ و پنیر', 'میکس گوشت', 'رویال نوستالژی'
+        ],
+        descs: [
+            'نان تازه با مواد اولیه باکیفیت و سس مخصوص خانه',
+            'ترکیب گوشت و پنیر ذوب‌شده با طعم بی‌نظیر و تازه',
+            'پخته شده به روش سنتی در تنور گرم با نان داغ',
+            'مواد تازه روزانه با سس مخصوص و سبزیجات فصل',
+            'ساندویچ سیرکننده با نان داغ تنوری و پنیر کش‌دار'
+        ],
+        priceMin: 150000,
+        priceRange: 180000
+    },
+    appetizers: {
+        prefixes: ['سیب‌زمینی', 'بال', 'استیکس', 'چیپسی', 'سوخاری', 'پیش‌غذای', 'اسنک'],
+        suffixes: [
+            'سرخ‌کرده ساده', 'بوفالو تند', 'موزارلا کش‌دار', 'بلژیکی ترد',
+            'نان سیر و پارمزان', 'ناگت مرغ', 'رولت مرغ', 'حلقه پیاز',
+            'قارچ سوخاری', 'کروکت پنیری', 'قاچی مخصوص', 'مخصوص سرآشپز',
+            'پاپکورن میگو', 'سیخ پنیر', 'سیخ مرغ و پنیر', 'میکس ویژه',
+            'چدار گرم', 'اسپایسی', 'دودی بی‌نظیر', 'طلایی کریسپی'
+        ],
+        descs: [
+            'سیب‌زمینی تازه سرخ‌شده با ادویه مخصوص و سس دیپ',
+            'سوخاری طلایی و ترد با سس دیپ همراه و طعم بی‌نظیر',
+            'پیش‌غذای داغ با ترکیب خاص و طعم مخصوص سرآشپز',
+            'مناسب برای اشتراک با دوستان با سس مخصوص و تازه',
+            'غذای جانبی محبوب با سس مخصوص و طعم بی‌نظیر'
+        ],
+        priceMin: 90000,
+        priceRange: 130000
+    },
+    drinks: {
+        prefixes: ['نوشیدنی', 'دوغ', 'شربت', 'لیموناد', 'موهیتو', 'قهوه', 'چای', 'آبمیوه', 'اسموتی', 'شیک'],
+        suffixes: [
+            'نعنایی خنک', 'کوکاکولا کلاسیک', 'لیمویی گازدار', 'دست‌ساز تابستانی',
+            'بیدمشک سنتی', 'بهارنارنج', 'خاکشیر نعنایی', 'کلد برو تخصصی',
+            'آیس لاته', 'سیاه سنتی', 'سبز زعفرانی', 'پرتقال طبیعی',
+            'سیب طبیعی', 'انار طبیعی', 'توت‌فرنگی تازه', 'انرژی‌زا',
+            'شکلاتی داغ', 'وانیلی مخصوص', 'گازدار خنک', 'معدنی خنک'
+        ],
+        descs: [
+            'نوشیدنی خنک و تازه با یخ فراوان و طعم بی‌نظیر',
+            'طعم طبیعی و بدون افزودنی مصنوعی و نگهدارنده',
+            'سرو در لیوان شیشه‌ای خنک با یخ و تزئین مخصوص',
+            'ترکیب خاص و طعم بی‌نظیر ایرانی با عطر طبیعی',
+            'نوشیدنی مناسب برای گرمای تابستان و لحظات خوش'
+        ],
+        priceMin: 30000,
+        priceRange: 90000
+    },
+    sweets: {
+        prefixes: ['کیک', 'باقلوا', 'کروسان', 'شله', 'نان', 'شیرینی', 'دسر', 'چیزکیک', 'ماکارون', 'براونی'],
+        suffixes: [
+            'شکلاتی فاج', 'وانیلی اسفنجی', 'گردویی ممتاز', 'پسته اعلا',
+            'کره‌ای فرانسوی', 'زرد زعفرانی', 'خامه‌ای سنتی', 'دانمارکی',
+            'هویج و گردو', 'نیویورکی', 'پروفیترول شکلاتی', 'فرانسوی رنگین',
+            'فاج مخصوص', 'ردولوت مخملی', 'تیرامیسو ایتالیایی', 'پانا کوتا',
+            'کارامل نرم', 'لیمویی خنک', 'پسته و زعفران', 'رویال ویژه'
+        ],
+        descs: [
+            'شیرینی تازه پخته شده با مواد اولیه درجه یک و شکلات اعلا',
+            'کیک نرم و خوش‌طعم مناسب برای پذیرایی و مهمانی',
+            'دسر خوشمزه با طعم بی‌نظیر و ظاهر جذاب و تزئین ویژه',
+            'پخته شده با کره حیوانی و شکلات بلژیکی اعلا',
+            'طعم اصیل فرانسوی با تزئین زیبا و مواد اولیه مرغوب'
+        ],
+        priceMin: 60000,
+        priceRange: 130000
+    },
+    supermarket: {
+        prefixes: ['نوشابه', 'آب', 'چیپس', 'پفک', 'بیسکویت', 'شکلات', 'آدامس', 'آبمیوه', 'اسنک', 'کیک'],
+        suffixes: [
+            'کوکاکولا قوطی', 'فانتا پرتقالی', 'معدنی خنک', 'نمکی ترد',
+            'نمکی پنیری', 'کرم‌دار وانیلی', 'تخته‌ای تلخ', 'نعنایی تازه',
+            'بسته‌بندی تازه', 'انرژی‌زا مخصوص', 'خانوادگی', 'مخصوص کودکان',
+            'رژیمی', 'بدون قند', 'گیاهی', 'سنتی'
+        ],
+        descs: [
+            'محصول اصل با کیفیت تضمینی و بسته‌بندی بهداشتی',
+            'بسته‌بندی بهداشتی و آماده مصرف روزانه',
+            'تاریخ مصرف تازه و موجود در یخچال سوپرمارکت',
+            'برند معتبر با کیفیت همیشگی و طعم بی‌نظیر',
+            'مناسب برای مصرف روزانه و تنقلات خانگی'
+        ],
+        priceMin: 15000,
+        priceRange: 40000
+    }
+};
+
+const VENDOR_GENERATION_PLAN = [
+    ['v1', 'burgers', 20], ['v1', 'appetizers', 6], ['v1', 'drinks', 4],
+    ['v2', 'pizza', 15], ['v2', 'sandwich', 6], ['v2', 'drinks', 4],
+    ['v3', 'ash', 8], ['v3', 'traditional', 7],
+    ['v4', 'kebab', 15], ['v4', 'drinks', 5],
+    ['v5', 'sweets', 15],
+    ['v6', 'sandwich', 12], ['v6', 'appetizers', 8],
+    ['v7', 'pizza', 18], ['v7', 'appetizers', 7],
+    ['v8', 'kebab', 10], ['v8', 'traditional', 3], ['v8', 'drinks', 2],
+    ['v9', 'burgers', 15],
+    ['v10', 'sweets', 15],
+    ['v11', 'drinks', 12], ['v11', 'sweets', 8],
+    ['v12', 'kebab', 12], ['v12', 'traditional', 8],
+    ['v13', 'sandwich', 15],
+    ['v14', 'traditional', 10], ['v14', 'kebab', 8],
+    ['v15', 'ash', 8], ['v15', 'traditional', 7],
+    ['v16', 'burgers', 12], ['v16', 'sandwich', 6],
+    ['v17', 'appetizers', 7], ['v17', 'traditional', 5],
+    ['v18', 'pizza', 9], ['v18', 'sandwich', 6],
+    ['v19', 'kebab', 10],
+    ['v20', 'supermarket', 10]
+];
+
+function buildExtraCatalog() {
+    const extra = [];
+    let nextId = 1000;
+
+    VENDOR_GENERATION_PLAN.forEach(plan => {
+        const [vendorId, categoryId, count] = plan;
+        const builder = CATEGORY_NAME_BUILDERS[categoryId];
+        if (!builder) return;
+
+        const usedTitles = new Set();
+
+        for (let i = 0; i < count; i++) {
+            const id = nextId++;
+            const seedBase = `${vendorId}-${categoryId}-${id}`;
+
+            let title = '';
+            let attempt = 0;
+            while (attempt < 20) {
+                const prefixSeed = seedBase + '-pre-' + attempt;
+                const suffixSeed = seedBase + '-suf-' + attempt;
+                const prefix = builder.prefixes[fnvHash(prefixSeed) % builder.prefixes.length];
+                const suffix = builder.suffixes[fnvHash(suffixSeed) % builder.suffixes.length];
+                const candidate = `${prefix} ${suffix}`;
+                if (!usedTitles.has(candidate)) {
+                    title = candidate;
+                    usedTitles.add(candidate);
+                    break;
+                }
+                attempt++;
+            }
+            if (!title) {
+                title = `${builder.prefixes[0]} ${builder.suffixes[i % builder.suffixes.length]} ${(i + 1)}`;
+            }
+
+            const desc = builder.descs[fnvHash(seedBase + '-desc') % builder.descs.length];
+
+            const price = seededRange(seedBase + '-price', builder.priceMin, builder.priceMin + builder.priceRange);
+            const discount = (id % 5 === 0) ? 0 : ((id % 4) * 5);
+            const originalPrice = discount > 0 ? Math.round(price / (1 - discount / 100)) : price;
+
+            const rating = 3.8 + ((fnvHash(seedBase + '-rating') % 12) / 10);
+            const reviews = 40 + (fnvHash(seedBase + '-reviews') % 950);
+            const stockLeft = 2 + (fnvHash(seedBase + '-stock') % 22);
+
+            const image = makeFoodImage(categoryId, seedBase + '-img-' + i);
+            const subtype = detectSubtypeFromTitle(title, desc, categoryId);
+
+            extra.push({
+                id,
+                vendorId,
+                categoryId,
+                subtype,
+                title,
+                desc,
+                price,
+                originalPrice,
+                discount,
+                stockLeft,
+                rating: Math.round(rating * 10) / 10,
+                reviews,
+                image,
+                addons: []
+            });
+        }
+    });
+
+    return extra;
+}
+
+function tagBaseProductsWithSubtype(products) {
+    return products.map(p => {
+        if (p.subtype) return p;
+        return Object.assign({}, p, {
+            subtype: detectSubtypeFromTitle(p.title, p.desc, p.categoryId)
+        });
+    });
+}
+
+function buildFullCatalog() {
+    const baseTagged = tagBaseProductsWithSubtype(baseCatalogProducts);
+    const extra = buildExtraCatalog();
+    return [...baseTagged, ...extra];
+}
+
+const catalogProducts = buildFullCatalog();
+
+let __generatorModule = null;
+let __generatorLoading = null;
+
+async function loadGenerator() {
+    if (__generatorModule) return __generatorModule;
+    if (__generatorLoading) return __generatorLoading;
+    __generatorLoading = import('./procedural-food-generator.js').then(mod => {
+        __generatorModule = mod;
+        __generatorLoading = null;
+        return mod;
+    }).catch(err => {
+        __generatorLoading = null;
+        throw err;
+    });
+    return __generatorLoading;
+}
+
+function estimateCaloriesFallback(product) {
+    const category = product.categoryId || 'burgers';
+    const baseMap = {
+        burgers: 650,
+        pizza: 780,
+        kebab: 720,
+        traditional: 620,
+        ash: 380,
+        sandwich: 540,
+        appetizers: 420,
+        drinks: 120,
+        sweets: 460,
+        supermarket: 180
+    };
+    const base = baseMap[category] || 500;
+    const priceFactor = Math.min(1.4, Math.max(0.7, product.price / 300000));
+    return Math.round(base * priceFactor);
+}
+
+function estimateCalories(product) {
+    if (__generatorModule && typeof __generatorModule.estimateCalories === 'function') {
+        try {
+            return __generatorModule.estimateCalories(product);
+        } catch (e) {
+            return estimateCaloriesFallback(product);
+        }
+    }
+    loadGenerator().catch(() => {});
+    return estimateCaloriesFallback(product);
+}
+
+const CATALOG_PAGE_SIZE = 8;
+let catalogDisplayLimit = CATALOG_PAGE_SIZE;
+
+function resetCatalogLimit() {
+    catalogDisplayLimit = CATALOG_PAGE_SIZE;
+}
+
+function loadMoreCatalogItems() {
+    catalogDisplayLimit += CATALOG_PAGE_SIZE;
+    renderCatalog();
+    if (window.lucide) lucide.createIcons();
+}
+window.loadMoreCatalogItems = loadMoreCatalogItems;
 
 const storiesData = [
     { id: 1, title: 'حراج ویژه',      icon: '⚡', desc: 'تخفیف‌های استثنایی تا ۵۰٪ روی کالاهای منتخب', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=200&q=80' },
@@ -235,7 +781,19 @@ function toPersianDigits(n) {
 }
 
 function formatPrice(a) {
-    return toPersianDigits(Math.round(a).toLocaleString('fa-IR'));
+    const n = Math.round(a);
+    const s = String(n);
+    let out = '';
+    let counter = 0;
+    for (let i = s.length - 1; i >= 0; i--) {
+        out = s[i] + out;
+        counter++;
+        if (counter === 3 && i > 0) {
+            out = ',' + out;
+            counter = 0;
+        }
+    }
+    return toPersianDigits(out);
 }
 
 window.AppAPI = {
@@ -247,6 +805,7 @@ window.AppAPI = {
     promoBanners,
     formatPrice,
     toPersianDigits,
+    estimateCalories,
     switchNavTab,
     selectVendor,
     handleAddToCart,
@@ -562,6 +1121,7 @@ function renderVendorSwitcher() {
 
 async function selectVendor(vendorId) {
     selectedVendorId = vendorId;
+    resetCatalogLimit();
     try {
         const restMod = await import('./restaurant-view.js');
         if (restMod && typeof restMod.openRestaurantMenu === 'function') {
@@ -670,7 +1230,11 @@ function renderCatalog() {
     }
     if (emptyNotice) emptyNotice.classList.add('hidden');
 
-    const cards = items.map(item => {
+    const totalCount = items.length;
+    const visibleItems = items.slice(0, catalogDisplayLimit);
+    const hasMore = totalCount > catalogDisplayLimit;
+
+    const cards = visibleItems.map(item => {
         const qty = cartState.items[item.id]?.quantity || 0;
         const isFavorite = wishlistState.includes(item.id);
         const isBestseller = item.rating >= 4.7;
@@ -720,6 +1284,26 @@ function renderCatalog() {
     }).join('');
 
     html += `<div class="space-y-4 pb-4">${cards}</div>`;
+
+    if (hasMore) {
+        const remaining = totalCount - catalogDisplayLimit;
+        html += `
+            <div class="flex justify-center pb-6 pt-2">
+                <button onclick="window.loadMoreCatalogItems()" class="bg-white border-2 border-snapp text-snapp hover:bg-snapp hover:text-white font-black text-xs py-3.5 px-8 rounded-2xl transition-all active:scale-95 shadow-md shadow-pink-500/10 flex items-center gap-2">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                    <span>مشاهده ${toPersianDigits(Math.min(CATALOG_PAGE_SIZE, remaining))} آیتم بیشتر</span>
+                    <span class="bg-snapp-light text-snapp text-[10px] font-black px-2 py-0.5 rounded-full">${toPersianDigits(remaining)} مانده</span>
+                </button>
+            </div>
+        `;
+    } else if (totalCount > CATALOG_PAGE_SIZE) {
+        html += `
+            <div class="text-center py-6 text-[10px] font-bold text-gray-400">
+                ✓ همه ${toPersianDigits(totalCount)} آیتم این فروشگاه نمایش داده شد
+            </div>
+        `;
+    }
+
     container.innerHTML = html;
     if (window.lucide) lucide.createIcons();
 }
@@ -1186,6 +1770,7 @@ function handleStoryAction() {
 
 function handleSearch(value) {
     searchQuery = value;
+    resetCatalogLimit();
     const clearBtn = document.getElementById('search-clear');
     if (clearBtn) {
         if (searchQuery.length > 0) clearBtn.classList.remove('hidden');
@@ -1198,6 +1783,7 @@ function clearSearch() {
     const input = document.getElementById('search-input');
     if (input) input.value = '';
     searchQuery = '';
+    resetCatalogLimit();
     const clearBtn = document.getElementById('search-clear');
     if (clearBtn) clearBtn.classList.add('hidden');
     renderCatalog();
@@ -1205,11 +1791,13 @@ function clearSearch() {
 
 function setCategoryTab(categoryId) {
     selectedCategory = categoryId;
+    resetCatalogLimit();
     renderCategoryTabs();
     renderCatalog();
 }
 
 function selectCategoryFromGrid(categoryId) {
+    resetCatalogLimit();
     const vendor = vendors.find(v => v.id === selectedVendorId);
     if (vendor && vendor.categories.some(c => c.id === categoryId)) {
         selectedCategory = categoryId;
@@ -1228,6 +1816,7 @@ function selectCategoryFromGrid(categoryId) {
 
 function applySort(type) {
     currentSort = type;
+    resetCatalogLimit();
     document.querySelectorAll('.sort-chip').forEach(btn => {
         if (btn.dataset.sort === type) {
             btn.className = 'sort-chip px-3 py-1.5 rounded-full border border-snapp bg-snapp text-white transition-all shrink-0 active:scale-95 flex items-center gap-1';
@@ -1322,6 +1911,8 @@ function startFlashCountdown() {
 }
 
 async function initApp() {
+    loadGenerator().catch(() => {});
+
     let storiesHandledByModule = false;
     try {
         const sm = await import('./stories-manager.js');
