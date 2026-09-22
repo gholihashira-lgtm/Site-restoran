@@ -258,32 +258,11 @@ window.AppAPI = {
     }
 };
 
-function waitForThree() {
-    if (window.__THREE_READY__) return Promise.resolve();
-    if (window.__THREE_ERROR__) return Promise.reject(window.__THREE_ERROR__);
-
-    return new Promise((resolve, reject) => {
-        const onReady = () => { cleanup(); resolve(); };
-        const onError = () => { cleanup(); reject(window.__THREE_ERROR__); };
-        const onTimeout = () => {
-            cleanup();
-            reject(new Error('زمان انتظار برای بارگذاری Three.js به پایان رسید.'));
-        };
-        const cleanup = () => {
-            window.removeEventListener('three-ready', onReady);
-            window.removeEventListener('three-error', onError);
-            clearTimeout(timer);
-        };
-        window.addEventListener('three-ready', onReady);
-        window.addEventListener('three-error', onError);
-        const timer = setTimeout(onTimeout, 12000);
-    });
-}
-
 function injectHomeWidgets() {
     injectSnappProPill();
     injectServiceCategoryGrid();
     injectPromoBanners();
+    injectLoghmeYarOrb();
 }
 
 function injectSnappProPill() {
@@ -401,6 +380,41 @@ function injectPromoBanners() {
     if (window.lucide) lucide.createIcons();
 
     bindPromoBannerDrag();
+}
+
+function injectLoghmeYarOrb() {
+    if (document.getElementById('loghme-yar-orb')) return;
+    const header = document.querySelector('header');
+    if (!header || !header.parentElement) return;
+
+    const orb = document.createElement('button');
+    orb.id = 'loghme-yar-orb';
+    orb.setAttribute('aria-label', 'لقمه‌یار');
+    orb.className = 'loghme-yar-orb';
+    orb.innerHTML = `
+        <span class="loghme-yar-orb__aura"></span>
+        <span class="loghme-yar-orb__core">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+        </span>
+        <span class="loghme-yar-orb__label">
+            <span class="loghme-yar-orb__title">لقمه‌یار</span>
+            <span class="loghme-yar-orb__sub">پیشنهاد هوشمند غذا</span>
+        </span>
+    `;
+    orb.addEventListener('click', () => {
+        if (window.LoghmeYarAI && typeof window.LoghmeYarAI.open === 'function') {
+            window.LoghmeYarAI.open();
+        } else {
+            import('./script_2.js').then(mod => {
+                if (mod && mod.LoghmeYarAI && typeof mod.LoghmeYarAI.open === 'function') {
+                    mod.LoghmeYarAI.open();
+                }
+            }).catch(err => console.warn('[LoghmeYar] load failed:', err));
+        }
+    });
+
+    document.body.appendChild(orb);
+    if (window.lucide) lucide.createIcons();
 }
 
 function bindPromoBannerDrag() {
@@ -1029,611 +1043,19 @@ async function executeCheckout() {
     }
 }
 
-function openProductModal(productId) {
+async function openProductModal(productId) {
     if (typeof window.openProductDetail === 'function') {
         window.openProductDetail(productId);
         return;
     }
-    const product = catalogProducts.find(p => p.id === productId);
-    if (!product) return;
-    new ExplodedViewBuilder(product);
-}
-
-class ExplodedViewBuilder {
-    constructor(product) {
-        this.product = product;
-        this.targetProgress = 0.18;
-        this.currentProgress = 0;
-        this.rafId = null;
-        this.mouseX = 0;
-        this.mouseY = 0;
-        this.smoothMouseX = 0;
-        this.smoothMouseY = 0;
-        this.destroyed = false;
-        this.ready = false;
-        this.isFlatDish = false;
-        this.responsiveBaseZ = 11;
-
-        this.dragActive = false;
-        this.dragStartY = 0;
-        this.dragStartProgress = 0;
-        this.dragVelocity = 0;
-        this.lastDragY = 0;
-        this.lastDragTime = 0;
-
-        this.layers = [];
-        this.labelEls = [];
-
-        document.body.style.overflow = 'hidden';
-        this.buildDOM();
-        this.boot();
-    }
-
-    buildDOM() {
-        this.container = document.createElement('div');
-        this.container.className = 'exploded-overlay font-vazir';
-        Object.assign(this.container.style, {
-            position: 'fixed', top: '0', left: '0', width: '100vw',
-            height: '100dvh',
-            zIndex: '9999',
-            background: 'radial-gradient(ellipse at 50% 35%, #1a1a24 0%, #0a0a0e 70%, #050508 100%)',
-            overflowY: 'auto', overflowX: 'hidden',
-            opacity: '0', transition: 'opacity 0.6s ease',
-            WebkitOverflowScrolling: 'touch'
-        });
-
-        this.scrollTrack = document.createElement('div');
-        Object.assign(this.scrollTrack.style, { position: 'relative', width: '100%', height: '320vh' });
-
-        this.viewport = document.createElement('div');
-        Object.assign(this.viewport.style, { position: 'sticky', top: '0', width: '100%', height: '100dvh', overflow: 'hidden' });
-
-        this.canvas = document.createElement('canvas');
-        Object.assign(this.canvas.style, { position: 'absolute', top: '0', left: '0', width: '100%', height: '100%', zIndex: '10', pointerEvents: 'none', display: 'block' });
-
-        this.loadingText = document.createElement('div');
-        Object.assign(this.loadingText.style, {
-            position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-            color: 'rgba(255,255,255,0.75)', fontWeight: '700', fontSize: '12px', zIndex: '60',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px'
-        });
-        this.loadingText.innerHTML = `
-            <div style="width:40px;height:40px;border:2px solid rgba(255,0,166,0.3);border-top-color:#FF00A6;border-radius:9999px;animation:spin 0.9s linear infinite;"></div>
-            <span>در حال رندر نمای سه‌بعدی...</span>
-        `;
-
-        this.instruction = document.createElement('div');
-        Object.assign(this.instruction.style, {
-            position: 'absolute',
-            top: 'calc(5.5rem + env(safe-area-inset-top, 0px))',
-            left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.15)', color: '#fff', padding: '8px 16px', borderRadius: '9999px',
-            fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px',
-            zIndex: '50', pointerEvents: 'none', opacity: '0', transition: 'opacity 0.5s ease'
-        });
-        this.instruction.innerHTML = `<i data-lucide="mouse-pointer-click" class="w-4 h-4"></i> با انگشت بکشید تا لایه‌ها باز شوند`;
-
-        this.labelsContainer = document.createElement('div');
-        Object.assign(this.labelsContainer.style, { position: 'absolute', inset: '0', zIndex: '40', pointerEvents: 'none' });
-
-        this.progressIndicator = document.createElement('div');
-        Object.assign(this.progressIndicator.style, {
-            position: 'absolute',
-            bottom: 'calc(6.5rem + env(safe-area-inset-bottom, 0px))',
-            left: '50%', transform: 'translateX(-50%)',
-            width: '80px', height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '9999px',
-            overflow: 'hidden', zIndex: '45', opacity: '0', transition: 'opacity 0.4s ease'
-        });
-        this.progressIndicator.innerHTML = `<div id="exploded-progress-fill" style="width:0%;height:100%;background:linear-gradient(90deg,#FF00A6,#FFD600);transition:width 0.1s linear;"></div>`;
-
-        this.footer = document.createElement('div');
-        Object.assign(this.footer.style, {
-            position: 'absolute', bottom: '0', left: '0', width: '100%',
-            padding: '18px 20px calc(24px + env(safe-area-inset-bottom, 0px))',
-            background: 'linear-gradient(to top, rgba(10,10,14,0.95) 0%, rgba(10,10,14,0.5) 70%, transparent 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: '50'
-        });
-        this.footer.innerHTML = `
-            <div class="min-w-0 flex-1 ml-3">
-                <h3 class="text-white font-black text-sm mb-1 truncate">${this.product.title}</h3>
-                <div class="text-snapp font-black text-lg leading-none">
-                    ${formatPrice(this.product.price)}
-                    <span class="text-[10px] text-gray-400 font-normal">تومان</span>
-                </div>
-            </div>
-            <button id="exploded-add-btn" class="bg-snapp hover:bg-snapp-hover text-white text-xs font-black px-6 py-3.5 rounded-2xl shadow-2xl shadow-pink-500/40 flex items-center gap-2 active:scale-95 transition-transform pointer-events-auto shrink-0 min-h-[44px]">
-                <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                افزودن به سبد
-            </button>
-        `;
-
-        this.closeBtn = document.createElement('button');
-        Object.assign(this.closeBtn.style, {
-            position: 'absolute',
-            top: 'calc(1.25rem + env(safe-area-inset-top, 0px))',
-            right: '1rem', width: '40px', height: '40px',
-            background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.15)', borderRadius: '9999px', color: '#fff',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: '50', cursor: 'pointer', pointerEvents: 'auto'
-        });
-        this.closeBtn.innerHTML = `<i data-lucide="x" class="w-5 h-5"></i>`;
-        this.closeBtn.addEventListener('mouseenter', () => { this.closeBtn.style.background = 'rgba(255,255,255,0.15)'; });
-        this.closeBtn.addEventListener('mouseleave', () => { this.closeBtn.style.background = 'rgba(255,255,255,0.08)'; });
-
-        this.viewport.appendChild(this.canvas);
-        this.viewport.appendChild(this.loadingText);
-        this.viewport.appendChild(this.labelsContainer);
-        this.viewport.appendChild(this.instruction);
-        this.viewport.appendChild(this.progressIndicator);
-        this.viewport.appendChild(this.closeBtn);
-        this.viewport.appendChild(this.footer);
-        this.scrollTrack.appendChild(this.viewport);
-        this.container.appendChild(this.scrollTrack);
-        document.body.appendChild(this.container);
-
-        if (window.lucide) lucide.createIcons();
-        requestAnimationFrame(() => { this.container.style.opacity = '1'; });
-    }
-
-    async boot() {
-        try {
-            await waitForThree();
-            this.THREE = window.__THREE__;
-            this.postFX = window.__POST_FX__;
-            this.matMod = window.__MAT__;
-
-            await new Promise(r => requestAnimationFrame(r));
-            await new Promise(r => requestAnimationFrame(r));
-            if (this.destroyed) return;
-
-            this.setupScene();
-            await this.buildModel();
-            this.createLabels();
-            this.bindEvents();
-            this.animate();
-
-            this.loadingText.style.display = 'none';
-            this.instruction.style.opacity = '1';
-            this.progressIndicator.style.opacity = '1';
-            this.ready = true;
-        } catch (err) {
-            this.showError(err);
+    try {
+        const mod = await import('./script_2.js');
+        if (mod && mod.ExplodedViewBuilder) {
+            const product = catalogProducts.find(p => p.id === productId);
+            if (product) new mod.ExplodedViewBuilder(product);
         }
-    }
-
-    showError(err) {
-        if (!this.loadingText) return;
-        this.loadingText.style.display = 'flex';
-        this.loadingText.innerHTML = `
-            <div style="width:44px;height:44px;border-radius:9999px;background:rgba(255,68,68,0.15);border:1px solid rgba(255,68,68,0.4);display:flex;align-items:center;justify-content:center;color:#ff4444;font-size:20px;font-weight:900;">!</div>
-            <span style="color:#ff6b6b;font-weight:800;">خطا در بارگذاری نمای سه‌بعدی</span>
-            <span style="color:rgba(255,255,255,0.5);font-size:10px;">${(err && err.message) || err}</span>
-        `;
-    }
-
-    setupScene() {
-        const THREE = this.THREE;
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const aspect = w / h;
-        const isPortrait = aspect < 1.0;
-
-        this.scene = new THREE.Scene();
-        this.scene.background = null;
-
-        this.camera = new THREE.PerspectiveCamera(isPortrait ? 44 : 38, aspect, 0.1, 100);
-
-        this.responsiveBaseZ = isPortrait
-            ? (this.isFlatDish ? 19 : 17.5)
-            : (this.isFlatDish ? 12 : 11);
-        this.camera.position.set(0, 0, this.responsiveBaseZ);
-        this.camera.lookAt(0, 0, 0);
-
-        this.renderer = new THREE.WebGLRenderer({
-            canvas: this.canvas,
-            antialias: true,
-            alpha: true,
-            powerPreference: 'high-performance'
-        });
-        this.renderer.setSize(w, h, false);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-        this.matMod.initLighting(this.scene);
-
-        const { EffectComposer, RenderPass, UnrealBloomPass, OutputPass } = this.postFX;
-
-        this.composer = new EffectComposer(this.renderer);
-        this.composer.setSize(w, h);
-        this.composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-        this.composer.addPass(new RenderPass(this.scene, this.camera));
-        this.composer.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), 0.55, 0.55, 0.85));
-        this.composer.addPass(new OutputPass());
-
-        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        this.renderer.toneMappingExposure = 1.15;
-    }
-
-    async buildModel() {
-        let mod;
-        let result;
-        this.isFlatDish = false;
-
-        if (this.product.id === 4 || this.product.title.includes('بندری')) {
-            mod = await import('./bandari-stack.js');
-            result = mod.buildBandari3D(this.scene);
-        } else if (this.product.id === 1) {
-            mod = await import('./burger-classic.js');
-            result = mod.buildClassicBurger3D(this.scene);
-        } else if (this.product.id === 2) {
-            mod = await import('./burger-smash.js');
-            result = mod.buildSmashBurger3D(this.scene);
-        } else if (this.product.categoryId === 'pizza' || this.product.title.includes('پیتزا')) {
-            mod = await import('./pizza-stack.js');
-            result = mod.buildPizza3D(this.scene);
-            this.isFlatDish = true;
-        } else if (this.product.categoryId === 'burgers') {
-            mod = await import('./burger-mushroom.js');
-            result = mod.buildMushroomBurger3D(this.scene);
-        } else {
-            mod = await import('./geometry-stack.js');
-            this.geoMod = mod;
-            mod.explosionLayers.length = 0;
-            while (mod.burgerGroup.children.length > 0) mod.burgerGroup.remove(mod.burgerGroup.children[0]);
-            mod.buildProduct3D(this.scene, this.product);
-            result = { group: mod.burgerGroup, layers: mod.explosionLayers };
-            if (['pizza', 'kebab', 'ash', 'traditional', 'appetizers'].includes(this.product.categoryId)) {
-                this.isFlatDish = true;
-            }
-        }
-
-        this.geoMod = mod;
-        this.burgerGroup = result.group;
-        this.layers = result.layers;
-
-        if (!this.layers || this.layers.length === 0) {
-            throw new Error('هیچ لایه‌ای برای این محصول ساخته نشد.');
-        }
-
-        if (this.burgerGroup.parent !== this.scene) {
-            this.scene.add(this.burgerGroup);
-        }
-
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const aspect = w / h;
-        const isPortrait = aspect < 1.0;
-
-        if (isPortrait) {
-            this.burgerGroup.scale.setScalar(0.68);
-        }
-
-        this.camera.fov = isPortrait ? 44 : 38;
-        this.responsiveBaseZ = isPortrait
-            ? (this.isFlatDish ? 19 : 17.5)
-            : (this.isFlatDish ? 12 : 11);
-        this.camera.position.set(0, 0, this.responsiveBaseZ);
-        this.camera.updateProjectionMatrix();
-
-        this.createAmbientParticles();
-    }
-
-    createAmbientParticles() {
-        const THREE = this.THREE;
-        const count = 400;
-        const geo = new THREE.BufferGeometry();
-        const pos = new Float32Array(count * 3);
-        const speeds = new Float32Array(count);
-
-        for (let i = 0; i < count * 3; i += 3) {
-            pos[i] = (Math.random() - 0.5) * 16;
-            pos[i + 1] = (Math.random() - 0.5) * 16;
-            pos[i + 2] = (Math.random() - 0.5) * 16;
-            speeds[i / 3] = 0.2 + Math.random() * 0.7;
-        }
-        geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-        geo.userData = { speeds };
-
-        this.ambientParticles = new THREE.Points(geo, this.matMod.materials.frostParticleMat);
-        this.scene.add(this.ambientParticles);
-    }
-
-    createLabels() {
-        this.labelEls = [];
-
-        this.layers.forEach(layer => {
-            const el = document.createElement('div');
-            el.className = 'exploded-label';
-            el.dataset.side = layer.side || 'right';
-
-            const text = layer.text || 'محتوا';
-
-            if (el.dataset.side === 'left') {
-                el.innerHTML = `
-                    <span class="exp-text">${text}</span>
-                    <span class="exp-line"></span>
-                    <span class="exp-dot"></span>
-                `;
-            } else {
-                el.innerHTML = `
-                    <span class="exp-dot"></span>
-                    <span class="exp-line"></span>
-                    <span class="exp-text">${text}</span>
-                `;
-            }
-
-            this.labelsContainer.appendChild(el);
-            this.labelEls.push(el);
-        });
-    }
-
-    bindEvents() {
-        this.scrollHandler = () => {
-            if (this.dragActive) return;
-            const maxScroll = this.scrollTrack.scrollHeight - this.container.clientHeight;
-            if (maxScroll <= 0) return;
-            const p = Math.max(0, Math.min(1, this.container.scrollTop / maxScroll));
-            this.targetProgress = p;
-
-            const fill = document.getElementById('exploded-progress-fill');
-            if (fill) fill.style.width = (p * 100) + '%';
-
-            this.instruction.style.opacity = p > 0.06 ? '0' : '1';
-            this.progressIndicator.style.opacity = p > 0.95 ? '0' : '1';
-        };
-
-        this.mouseHandler = (e) => {
-            this.mouseX = (e.clientX / window.innerWidth) * 2 - 1;
-            this.mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
-        };
-
-        this.touchHandler = (e) => {
-            if (e.touches.length > 0) {
-                this.mouseX = (e.touches[0].clientX / window.innerWidth) * 2 - 1;
-                this.mouseY = -(e.touches[0].clientY / window.innerHeight) * 2 + 1;
-            }
-        };
-
-        this.directPointerDown = (e) => {
-            if (e.target.closest('#exploded-add-btn') || e.target.closest('button')) return;
-            this.dragActive = true;
-            this.dragStartY = e.clientY;
-            this.dragStartProgress = this.targetProgress;
-            this.dragVelocity = 0;
-            this.lastDragY = e.clientY;
-            this.lastDragTime = performance.now();
-            this.container.style.overflowY = 'hidden';
-        };
-
-        this.directPointerMove = (e) => {
-            if (!this.dragActive) return;
-            const dy = e.clientY - this.dragStartY;
-            const now = performance.now();
-            const dt = Math.max(1, now - this.lastDragTime);
-            const instantVy = (e.clientY - this.lastDragY) / dt;
-            this.dragVelocity = instantVy;
-            this.lastDragY = e.clientY;
-            this.lastDragTime = now;
-
-            const norm = -dy / (window.innerHeight * 0.55);
-            const next = Math.max(0, Math.min(1, this.dragStartProgress + norm));
-            this.targetProgress = next;
-
-            const fill = document.getElementById('exploded-progress-fill');
-            if (fill) fill.style.width = (next * 100) + '%';
-        };
-
-        this.directPointerUp = () => {
-            if (!this.dragActive) return;
-            this.dragActive = false;
-            this.container.style.overflowY = 'auto';
-            const inertia = -this.dragVelocity * 0.4;
-            this.targetProgress = Math.max(0, Math.min(1, this.targetProgress + inertia));
-        };
-
-        this.resizeHandler = () => {
-            if (!this.renderer) return;
-            const w = window.innerWidth;
-            const h = window.innerHeight;
-            const aspect = w / h;
-            const isPortrait = aspect < 1.0;
-
-            this.camera.aspect = aspect;
-            this.camera.fov = isPortrait ? 44 : 38;
-
-            this.responsiveBaseZ = isPortrait
-                ? (this.isFlatDish ? 19 : 17.5)
-                : (this.isFlatDish ? 12 : 11);
-
-            if (this.burgerGroup) {
-                this.burgerGroup.scale.setScalar(isPortrait ? 0.68 : 1.0);
-            }
-
-            this.camera.updateProjectionMatrix();
-            this.renderer.setSize(w, h, false);
-            if (this.composer) this.composer.setSize(w, h);
-        };
-
-        this.closeHandler = () => this.destroy();
-        this.addHandler = () => {
-            handleAddToCart(this.product.id, []);
-            this.destroy();
-        };
-
-        this.container.addEventListener('scroll', this.scrollHandler, { passive: true });
-        window.addEventListener('mousemove', this.mouseHandler, { passive: true });
-        window.addEventListener('touchstart', this.touchHandler, { passive: true });
-        window.addEventListener('touchmove', this.touchHandler, { passive: true });
-        window.addEventListener('resize', this.resizeHandler);
-        this.closeBtn.addEventListener('click', this.closeHandler);
-
-        this.viewport.addEventListener('pointerdown', this.directPointerDown);
-        this.viewport.addEventListener('pointermove', this.directPointerMove);
-        this.viewport.addEventListener('pointerup', this.directPointerUp);
-        this.viewport.addEventListener('pointercancel', this.directPointerUp);
-        this.viewport.addEventListener('pointerleave', this.directPointerUp);
-
-        const addBtn = this.footer.querySelector('#exploded-add-btn');
-        if (addBtn) addBtn.addEventListener('click', this.addHandler);
-    }
-
-    animate() {
-        if (!this.renderer || this.destroyed) return;
-
-        this.currentProgress += (this.targetProgress - this.currentProgress) * 0.09;
-        this.smoothMouseX += (this.mouseX - this.smoothMouseX) * 0.06;
-        this.smoothMouseY += (this.mouseY - this.smoothMouseY) * 0.06;
-
-        for (let i = 0; i < this.layers.length; i++) {
-            const layer = this.layers[i];
-            const y = layer.closedY + (layer.openY - layer.closedY) * this.currentProgress;
-            layer.mesh.position.y = y;
-        }
-
-        const aspectNow = window.innerWidth / window.innerHeight;
-        const isPortraitNow = aspectNow < 1.0;
-
-        if (this.burgerGroup) {
-            const jitterFactor = isPortraitNow ? 0.32 : 0.55;
-
-            if (this.isFlatDish) {
-                this.burgerGroup.rotation.x = (Math.PI * 0.22) + (this.smoothMouseY * jitterFactor);
-                this.burgerGroup.rotation.z = -0.08;
-                this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 2.0) + (this.smoothMouseX * 0.35);
-            } else {
-                this.burgerGroup.rotation.x = this.smoothMouseY * jitterFactor;
-                this.burgerGroup.rotation.z = 0;
-                this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 1.3) + (this.smoothMouseX * 0.35);
-            }
-        }
-
-        if (this.ambientParticles) {
-            const delta = 0.016;
-            const pos = this.ambientParticles.geometry.attributes.position;
-            const speeds = this.ambientParticles.geometry.userData.speeds;
-            for (let i = 0; i < pos.count; i++) {
-                let y = pos.getY(i) - speeds[i] * delta * 0.45;
-                if (y < -8) y = 8;
-                pos.setY(i, y);
-            }
-            pos.needsUpdate = true;
-            this.ambientParticles.rotation.y += delta * 0.035;
-        }
-
-        const explodeSpreadZ = isPortraitNow ? 3.5 : 5.5;
-        this.camera.position.x = this.smoothMouseX * 1.4;
-        this.camera.position.y = this.smoothMouseY * (isPortraitNow ? 0.6 : 1.2);
-        this.camera.position.z = this.responsiveBaseZ + (this.currentProgress * explodeSpreadZ);
-        this.camera.lookAt(0, 0, 0);
-
-        this.updateLabels();
-
-        if (this.composer) {
-            this.composer.render();
-        } else {
-            this.renderer.render(this.scene, this.camera);
-        }
-
-        this.rafId = requestAnimationFrame(() => this.animate());
-    }
-
-    updateLabels() {
-        if (!this.labelEls || !this.layers) return;
-
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        const aspect = w / h;
-        const isMobile = aspect < 1.0;
-        const centerX = w / 2;
-
-        const labelOpacity = Math.max(0, Math.min(1, (this.currentProgress - 0.15) * 3));
-
-        const v = this._tempVec || (this._tempVec = new this.THREE.Vector3());
-
-        const sideMargin = isMobile ? 55 : 85;
-
-        for (let i = 0; i < this.layers.length; i++) {
-            const el = this.labelEls[i];
-            if (!el) continue;
-
-            const layer = this.layers[i];
-
-            v.set(0, layer.mesh.position.y, 0);
-            v.applyEuler(this.burgerGroup.rotation);
-            v.project(this.camera);
-
-            const screenY = (1 - v.y) * 0.5 * h;
-
-            const isLeft = el.dataset.side === 'left';
-
-            if (isLeft) {
-                const anchorX = centerX - sideMargin;
-                el.style.left = anchorX + 'px';
-                el.style.transform = 'translate(-100%, -50%)';
-            } else {
-                const anchorX = centerX + sideMargin;
-                el.style.left = anchorX + 'px';
-                el.style.transform = 'translate(0, -50%)';
-            }
-
-            el.style.top = screenY + 'px';
-            el.style.opacity = labelOpacity;
-        }
-    }
-
-    destroy() {
-        this.destroyed = true;
-        cancelAnimationFrame(this.rafId);
-        window.removeEventListener('mousemove', this.mouseHandler);
-        window.removeEventListener('touchstart', this.touchHandler);
-        window.removeEventListener('touchmove', this.touchHandler);
-        window.removeEventListener('resize', this.resizeHandler);
-
-        this.container.style.opacity = '0';
-
-        setTimeout(() => {
-            try {
-                if (this.burgerGroup) {
-                    this.burgerGroup.traverse(obj => {
-                        if (obj.geometry && typeof obj.geometry.dispose === 'function') {
-                            obj.geometry.dispose();
-                        }
-                    });
-                    if (this.burgerGroup.parent) {
-                        this.burgerGroup.parent.remove(this.burgerGroup);
-                    }
-                    while (this.burgerGroup.children.length > 0) {
-                        this.burgerGroup.remove(this.burgerGroup.children[0]);
-                    }
-                }
-                if (this.ambientParticles) {
-                    this.ambientParticles.geometry.dispose();
-                    this.scene.remove(this.ambientParticles);
-                }
-                if (this.geoMod && this.geoMod.burgerGroup) {
-                    this.geoMod.burgerGroup.traverse(obj => {
-                        if (obj.geometry && typeof obj.geometry.dispose === 'function') {
-                            obj.geometry.dispose();
-                        }
-                    });
-                }
-            } catch (err) {
-                console.warn('[ExplodedView] Dispose warning:', err);
-            }
-
-            if (this.composer && typeof this.composer.dispose === 'function') {
-                this.composer.dispose();
-            }
-            if (this.renderer && typeof this.renderer.dispose === 'function') {
-                this.renderer.dispose();
-            }
-
-            this.container.remove();
-            document.body.style.overflow = '';
-        }, 550);
+    } catch (err) {
+        console.warn('[openProductModal] script_2.js load failed:', err);
     }
 }
 
@@ -1979,6 +1401,12 @@ async function initApp() {
         }
     } catch (e) {
         console.warn('[Bootstrap] flash-deals.js not available');
+    }
+
+    try {
+        await import('./script_2.js');
+    } catch (e) {
+        console.warn('[Bootstrap] script_2.js not available');
     }
 
     renderVendorSwitcher();
