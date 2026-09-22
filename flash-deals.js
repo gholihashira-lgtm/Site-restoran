@@ -113,7 +113,7 @@ function fdUpdateTransform(withTransition) {
     const w = fdState.width || inner.parentElement.clientWidth || 300;
     let offset = -fdState.index * w;
     if (fdState.dragging) offset += fdState.offsetX;
-    inner.style.transition = withTransition === false ? 'none' : 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+    inner.style.transition = withTransition === false ? 'none' : 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
     inner.style.transform = `translate3d(${offset}px, 0, 0)`;
 }
 
@@ -171,6 +171,9 @@ function fdOnPointerDown(e) {
     fdState.pointerId = e.pointerId;
     fdStopAutoplay();
 
+    const inner = document.getElementById('flash-deals-inner');
+    if (inner) inner.style.transition = 'none';
+
     const wrapper = document.getElementById('flash-deals-wrap');
     if (wrapper) wrapper.style.cursor = 'grabbing';
 
@@ -185,9 +188,11 @@ function fdOnPointerMove(e) {
 
     const dx = e.clientX - fdState.startX;
     const dy = e.clientY - fdState.startY;
+    const adx = Math.abs(dx);
+    const ady = Math.abs(dy);
 
     if (!fdState.moved) {
-        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
+        if (ady > adx && ady > 6) {
             fdState.dragging = false;
             fdState.pointerId = null;
             document.removeEventListener('pointermove', fdOnPointerMove);
@@ -199,7 +204,7 @@ function fdOnPointerMove(e) {
             fdRestartAutoplay();
             return;
         }
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+        if (adx > ady && adx > 6) {
             fdState.moved = true;
         }
     }
@@ -207,16 +212,11 @@ function fdOnPointerMove(e) {
     if (!fdState.moved) return;
     fdState.offsetX = dx;
 
-    let visualOffset = dx;
-    const maxOffset = fdState.width * 0.4;
-    if (visualOffset > maxOffset) visualOffset = maxOffset + (visualOffset - maxOffset) * 0.3;
-    if (visualOffset < -maxOffset) visualOffset = -maxOffset + (visualOffset + maxOffset) * 0.3;
-
     const inner = document.getElementById('flash-deals-inner');
     if (inner) {
         const w = fdState.width || inner.parentElement.clientWidth || 300;
         inner.style.transition = 'none';
-        inner.style.transform = `translate3d(${-fdState.startIndex * w + visualOffset}px, 0, 0)`;
+        inner.style.transform = `translate3d(${-fdState.startIndex * w + dx}px, 0, 0)`;
     }
 }
 
@@ -377,7 +377,7 @@ function fdRenderAll() {
     inner.style.transition = 'none';
     inner.style.transform = 'translate3d(0, 0, 0)';
     requestAnimationFrame(() => {
-        inner.style.transition = 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)';
+        inner.style.transition = 'transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
     });
 
     fdRenderDots();

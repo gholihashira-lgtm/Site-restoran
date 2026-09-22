@@ -184,16 +184,18 @@ function bindCarouselDrag() {
 
         const dx = e.clientX - vcState.startX;
         const dy = e.clientY - vcState.startY;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
 
         if (!vcState.moved) {
-            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
+            if (ady > adx && ady > 6) {
                 vcState.dragging = false;
                 vcState.pointerId = null;
                 track.style.cursor = 'grab';
-                track.style.scrollBehavior = '';
+                track.style.scrollBehavior = 'smooth';
                 return;
             }
-            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+            if (adx > ady && adx > 6) {
                 vcState.moved = true;
                 try { track.setPointerCapture(e.pointerId); } catch (err) {}
             }
@@ -214,7 +216,7 @@ function bindCarouselDrag() {
         vcState.moved = false;
 
         track.style.cursor = 'grab';
-        track.style.scrollBehavior = '';
+        track.style.scrollBehavior = 'smooth';
 
         if (wasMoved) {
             const preventClick = (ev) => {

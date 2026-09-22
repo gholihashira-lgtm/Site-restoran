@@ -434,16 +434,18 @@ function bindPromoBannerDrag() {
 
         const dx = e.clientX - promoDragState.startX;
         const dy = e.clientY - promoDragState.startY;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
 
         if (!promoDragState.moved) {
-            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
+            if (ady > adx && ady > 6) {
                 promoDragState.dragging = false;
                 promoDragState.pointerId = null;
                 track.style.cursor = 'grab';
-                track.style.scrollBehavior = '';
+                track.style.scrollBehavior = 'smooth';
                 return;
             }
-            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+            if (adx > ady && adx > 6) {
                 promoDragState.moved = true;
                 try { track.setPointerCapture(e.pointerId); } catch (err) {}
             }
@@ -464,7 +466,7 @@ function bindPromoBannerDrag() {
         promoDragState.moved = false;
 
         track.style.cursor = 'grab';
-        track.style.scrollBehavior = '';
+        track.style.scrollBehavior = 'smooth';
 
         if (wasMoved) {
             const preventClick = (ev) => {
@@ -1306,7 +1308,7 @@ class ExplodedViewBuilder {
         const isPortrait = aspect < 1.0;
 
         if (isPortrait) {
-            this.burgerGroup.scale.setScalar(0.72);
+            this.burgerGroup.scale.setScalar(0.68);
         }
 
         this.camera.fov = isPortrait ? 44 : 38;
@@ -1447,7 +1449,7 @@ class ExplodedViewBuilder {
                 : (this.isFlatDish ? 12 : 11);
 
             if (this.burgerGroup) {
-                this.burgerGroup.scale.setScalar(isPortrait ? 0.72 : 1.0);
+                this.burgerGroup.scale.setScalar(isPortrait ? 0.68 : 1.0);
             }
 
             this.camera.updateProjectionMatrix();
@@ -1547,10 +1549,8 @@ class ExplodedViewBuilder {
         const isMobile = aspect < 1.0;
         const centerX = w / 2;
 
-        const sideMargin = isMobile ? Math.min(w * 0.38, 135) : Math.min(w * 0.28, 210);
-
         const labelOpacity = Math.max(0, Math.min(1, (this.currentProgress - 0.15) * 3));
-        const slideOffset = (isMobile ? 15 : 30) * (1 - labelOpacity);
+        const slideOffset = (isMobile ? 10 : 30) * (1 - labelOpacity);
 
         const v = this._tempVec || (this._tempVec = new this.THREE.Vector3());
 
@@ -1567,17 +1567,32 @@ class ExplodedViewBuilder {
             const screenY = (1 - v.y) * 0.5 * h;
 
             const isLeft = el.dataset.side === 'left';
-            const anchorX = centerX + (isLeft ? -sideMargin : sideMargin);
 
-            el.style.left = anchorX + 'px';
+            if (isMobile) {
+                const safeEdgePadding = 8;
+
+                if (isLeft) {
+                    el.style.left = safeEdgePadding + 'px';
+                    el.style.transform = `translate(0, -50%) translateX(${-slideOffset}px)`;
+                } else {
+                    el.style.left = (w - safeEdgePadding) + 'px';
+                    el.style.transform = `translate(-100%, -50%) translateX(${slideOffset}px)`;
+                }
+            } else {
+                const sideMargin = Math.min(w * 0.28, 210);
+                const anchorX = centerX + (isLeft ? -sideMargin : sideMargin);
+
+                el.style.left = anchorX + 'px';
+
+                if (isLeft) {
+                    el.style.transform = `translate(-100%, -50%) translateX(${-slideOffset}px)`;
+                } else {
+                    el.style.transform = `translate(0, -50%) translateX(${slideOffset}px)`;
+                }
+            }
+
             el.style.top = screenY + 'px';
             el.style.opacity = labelOpacity;
-
-            if (isLeft) {
-                el.style.transform = `translate(-100%, -50%) translateX(${-slideOffset}px)`;
-            } else {
-                el.style.transform = `translate(0, -50%) translateX(${slideOffset}px)`;
-            }
         }
     }
 
