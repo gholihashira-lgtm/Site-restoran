@@ -372,7 +372,7 @@ function injectPromoBanners() {
     section.innerHTML = `
         <div id="promo-banners-track"
              class="flex gap-3 overflow-x-auto no-scrollbar py-1 px-4"
-             style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-x; cursor: grab; user-select: none; -webkit-user-select: none;">
+             style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;">
             ${promoBanners.map(banner => `
                 <div onclick="window.HomeWidgets.openBanner('${banner.id}')" class="promo-banner-card shrink-0 w-[320px] h-32 rounded-2xl bg-gradient-to-br ${banner.bg} text-white relative overflow-hidden shadow-lg cursor-pointer active:scale-[0.98] transition-transform" draggable="false">
                     <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -1220,7 +1220,7 @@ class ExplodedViewBuilder {
         this.camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 100);
 
         const baseZ = this.isFlatDish ? 12 : 11;
-        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.70) : baseZ;
+        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.50) : baseZ;
         this.camera.position.set(0, 0, this.responsiveBaseZ);
         this.camera.lookAt(0, 0, 0);
 
@@ -1301,7 +1301,7 @@ class ExplodedViewBuilder {
         const h = window.innerHeight;
         const aspect = w / h;
         const baseZ = this.isFlatDish ? 12 : 11;
-        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.70) : baseZ;
+        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.50) : baseZ;
         this.camera.position.set(0, 0, this.responsiveBaseZ);
         this.camera.updateProjectionMatrix();
     }
@@ -1389,7 +1389,7 @@ class ExplodedViewBuilder {
             this.camera.aspect = aspect;
 
             const baseZ = this.isFlatDish ? 12 : 11;
-            this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.70) : baseZ;
+            this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.50) : baseZ;
 
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(w, h, false);
