@@ -147,7 +147,7 @@ export function renderVendorCarousel(containerSelector = '#vendor-carousel-conta
 
         <div id="${trackId}"
              class="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-2"
-             style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-x; cursor: grab; user-select: none; -webkit-user-select: none;">
+             style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-y !important; cursor: grab; user-select: none; -webkit-user-select: none;">
             ${vendors.map(v => renderVendorCard(v, v.id === currentVendorId)).join('')}
         </div>
     `;
@@ -176,8 +176,6 @@ function bindCarouselDrag() {
 
         track.style.cursor = 'grabbing';
         track.style.scrollBehavior = 'auto';
-
-        try { track.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
     track.addEventListener('pointermove', (e) => {
@@ -188,24 +186,22 @@ function bindCarouselDrag() {
         const dy = e.clientY - vcState.startY;
 
         if (!vcState.moved) {
-            if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
-                vcState.moved = true;
-            } else if (Math.abs(dy) > 10) {
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
                 vcState.dragging = false;
                 vcState.pointerId = null;
                 track.style.cursor = 'grab';
                 track.style.scrollBehavior = '';
                 return;
             }
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+                vcState.moved = true;
+                try { track.setPointerCapture(e.pointerId); } catch (err) {}
+            }
         }
 
         if (!vcState.moved) return;
 
         track.scrollLeft = vcState.startScroll - dx;
-
-        if (Math.abs(dx) > 8) {
-            try { e.preventDefault(); } catch (err) {}
-        }
     });
 
     const endDrag = (e) => {

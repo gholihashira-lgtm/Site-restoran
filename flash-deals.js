@@ -171,19 +171,12 @@ function fdOnPointerDown(e) {
     fdState.pointerId = e.pointerId;
     fdStopAutoplay();
 
-    const inner = document.getElementById('flash-deals-inner');
-    if (inner) {
-        inner.style.transition = 'none';
-    }
-
     const wrapper = document.getElementById('flash-deals-wrap');
     if (wrapper) wrapper.style.cursor = 'grabbing';
 
-    document.addEventListener('pointermove', fdOnPointerMove, { passive: false });
+    document.addEventListener('pointermove', fdOnPointerMove, { passive: true });
     document.addEventListener('pointerup', fdOnPointerUp);
     document.addEventListener('pointercancel', fdOnPointerCancel);
-
-    try { e.preventDefault(); } catch (err) {}
 }
 
 function fdOnPointerMove(e) {
@@ -194,9 +187,7 @@ function fdOnPointerMove(e) {
     const dy = e.clientY - fdState.startY;
 
     if (!fdState.moved) {
-        if (Math.abs(dx) > 5 && Math.abs(dx) > Math.abs(dy)) {
-            fdState.moved = true;
-        } else if (Math.abs(dy) > 12) {
+        if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
             fdState.dragging = false;
             fdState.pointerId = null;
             document.removeEventListener('pointermove', fdOnPointerMove);
@@ -207,6 +198,9 @@ function fdOnPointerMove(e) {
             fdUpdateTransform(true);
             fdRestartAutoplay();
             return;
+        }
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+            fdState.moved = true;
         }
     }
 
@@ -221,11 +215,8 @@ function fdOnPointerMove(e) {
     const inner = document.getElementById('flash-deals-inner');
     if (inner) {
         const w = fdState.width || inner.parentElement.clientWidth || 300;
+        inner.style.transition = 'none';
         inner.style.transform = `translate3d(${-fdState.startIndex * w + visualOffset}px, 0, 0)`;
-    }
-
-    if (Math.abs(dx) > 8) {
-        try { e.preventDefault(); } catch (err) {}
     }
 }
 
@@ -295,7 +286,9 @@ function fdBindEvents() {
     if (!wrapper) return;
     fdState.bound = true;
 
-    wrapper.addEventListener('pointerdown', fdOnPointerDown, { passive: false });
+    wrapper.style.touchAction = 'pan-y';
+
+    wrapper.addEventListener('pointerdown', fdOnPointerDown, { passive: true });
 
     wrapper.addEventListener('click', (e) => {
         const addBtn = e.target.closest('[data-fd-add]');
@@ -361,6 +354,9 @@ function fdRenderAll() {
         console.warn('[FlashDeals] Container missing');
         return;
     }
+
+    wrap.style.touchAction = 'pan-y';
+    inner.style.touchAction = 'pan-y';
 
     fdState.items = fdGetItems();
     fdState.index = 0;

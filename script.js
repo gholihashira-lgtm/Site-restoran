@@ -372,7 +372,7 @@ function injectPromoBanners() {
     section.innerHTML = `
         <div id="promo-banners-track"
              class="flex gap-3 overflow-x-auto no-scrollbar py-1 px-4"
-             style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-y; cursor: grab; user-select: none; -webkit-user-select: none;">
+             style="scroll-behavior: smooth; -webkit-overflow-scrolling: touch; touch-action: pan-y !important; cursor: grab; user-select: none; -webkit-user-select: none;">
             ${promoBanners.map(banner => `
                 <div onclick="window.HomeWidgets.openBanner('${banner.id}')" class="promo-banner-card shrink-0 w-[320px] h-32 rounded-2xl bg-gradient-to-br ${banner.bg} text-white relative overflow-hidden shadow-lg cursor-pointer active:scale-[0.98] transition-transform" draggable="false">
                     <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/15 rounded-full blur-3xl pointer-events-none"></div>
@@ -426,8 +426,6 @@ function bindPromoBannerDrag() {
 
         track.style.cursor = 'grabbing';
         track.style.scrollBehavior = 'auto';
-
-        try { track.setPointerCapture(e.pointerId); } catch (err) {}
     });
 
     track.addEventListener('pointermove', (e) => {
@@ -438,24 +436,22 @@ function bindPromoBannerDrag() {
         const dy = e.clientY - promoDragState.startY;
 
         if (!promoDragState.moved) {
-            if (Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
-                promoDragState.moved = true;
-            } else if (Math.abs(dy) > 10) {
+            if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 6) {
                 promoDragState.dragging = false;
                 promoDragState.pointerId = null;
                 track.style.cursor = 'grab';
                 track.style.scrollBehavior = '';
                 return;
             }
+            if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+                promoDragState.moved = true;
+                try { track.setPointerCapture(e.pointerId); } catch (err) {}
+            }
         }
 
         if (!promoDragState.moved) return;
 
         track.scrollLeft = promoDragState.startScroll - dx;
-
-        if (Math.abs(dx) > 8) {
-            try { e.preventDefault(); } catch (err) {}
-        }
     });
 
     const endPromoDrag = (e) => {
@@ -1044,7 +1040,7 @@ function openProductModal(productId) {
 class ExplodedViewBuilder {
     constructor(product) {
         this.product = product;
-        this.targetProgress = 0;
+        this.targetProgress = 0.18;
         this.currentProgress = 0;
         this.rafId = null;
         this.mouseX = 0;
@@ -1055,6 +1051,13 @@ class ExplodedViewBuilder {
         this.ready = false;
         this.isFlatDish = false;
         this.responsiveBaseZ = 11;
+
+        this.dragActive = false;
+        this.dragStartY = 0;
+        this.dragStartProgress = 0;
+        this.dragVelocity = 0;
+        this.lastDragY = 0;
+        this.lastDragTime = 0;
 
         this.layers = [];
         this.labelEls = [];
@@ -1107,7 +1110,7 @@ class ExplodedViewBuilder {
             fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px',
             zIndex: '50', pointerEvents: 'none', opacity: '0', transition: 'opacity 0.5s ease'
         });
-        this.instruction.innerHTML = `<i data-lucide="mouse-pointer-click" class="w-4 h-4"></i> به پایین اسکرول کنید`;
+        this.instruction.innerHTML = `<i data-lucide="mouse-pointer-click" class="w-4 h-4"></i> با انگشت بکشید تا لایه‌ها باز شوند`;
 
         this.labelsContainer = document.createElement('div');
         Object.assign(this.labelsContainer.style, { position: 'absolute', inset: '0', zIndex: '40', pointerEvents: 'none' });
@@ -1213,14 +1216,16 @@ class ExplodedViewBuilder {
         const w = window.innerWidth;
         const h = window.innerHeight;
         const aspect = w / h;
+        const isPortrait = aspect < 1.0;
 
         this.scene = new THREE.Scene();
         this.scene.background = null;
 
-        this.camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 100);
+        this.camera = new THREE.PerspectiveCamera(isPortrait ? 44 : 38, aspect, 0.1, 100);
 
-        const baseZ = this.isFlatDish ? 12 : 11;
-        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.50) : baseZ;
+        this.responsiveBaseZ = isPortrait
+            ? (this.isFlatDish ? 19 : 17.5)
+            : (this.isFlatDish ? 12 : 11);
         this.camera.position.set(0, 0, this.responsiveBaseZ);
         this.camera.lookAt(0, 0, 0);
 
@@ -1295,15 +1300,23 @@ class ExplodedViewBuilder {
             this.scene.add(this.burgerGroup);
         }
 
-        this.createAmbientParticles();
-
         const w = window.innerWidth;
         const h = window.innerHeight;
         const aspect = w / h;
-        const baseZ = this.isFlatDish ? 12 : 11;
-        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.50) : baseZ;
+        const isPortrait = aspect < 1.0;
+
+        if (isPortrait) {
+            this.burgerGroup.scale.setScalar(0.72);
+        }
+
+        this.camera.fov = isPortrait ? 44 : 38;
+        this.responsiveBaseZ = isPortrait
+            ? (this.isFlatDish ? 19 : 17.5)
+            : (this.isFlatDish ? 12 : 11);
         this.camera.position.set(0, 0, this.responsiveBaseZ);
         this.camera.updateProjectionMatrix();
+
+        this.createAmbientParticles();
     }
 
     createAmbientParticles() {
@@ -1357,6 +1370,7 @@ class ExplodedViewBuilder {
 
     bindEvents() {
         this.scrollHandler = () => {
+            if (this.dragActive) return;
             const maxScroll = this.scrollTrack.scrollHeight - this.container.clientHeight;
             if (maxScroll <= 0) return;
             const p = Math.max(0, Math.min(1, this.container.scrollTop / maxScroll));
@@ -1381,15 +1395,60 @@ class ExplodedViewBuilder {
             }
         };
 
+        this.directPointerDown = (e) => {
+            if (e.target.closest('#exploded-add-btn') || e.target.closest('button')) return;
+            this.dragActive = true;
+            this.dragStartY = e.clientY;
+            this.dragStartProgress = this.targetProgress;
+            this.dragVelocity = 0;
+            this.lastDragY = e.clientY;
+            this.lastDragTime = performance.now();
+            this.container.style.overflowY = 'hidden';
+        };
+
+        this.directPointerMove = (e) => {
+            if (!this.dragActive) return;
+            const dy = e.clientY - this.dragStartY;
+            const now = performance.now();
+            const dt = Math.max(1, now - this.lastDragTime);
+            const instantVy = (e.clientY - this.lastDragY) / dt;
+            this.dragVelocity = instantVy;
+            this.lastDragY = e.clientY;
+            this.lastDragTime = now;
+
+            const norm = -dy / (window.innerHeight * 0.55);
+            const next = Math.max(0, Math.min(1, this.dragStartProgress + norm));
+            this.targetProgress = next;
+
+            const fill = document.getElementById('exploded-progress-fill');
+            if (fill) fill.style.width = (next * 100) + '%';
+        };
+
+        this.directPointerUp = () => {
+            if (!this.dragActive) return;
+            this.dragActive = false;
+            this.container.style.overflowY = 'auto';
+            const inertia = -this.dragVelocity * 0.4;
+            this.targetProgress = Math.max(0, Math.min(1, this.targetProgress + inertia));
+        };
+
         this.resizeHandler = () => {
             if (!this.renderer) return;
             const w = window.innerWidth;
             const h = window.innerHeight;
             const aspect = w / h;
-            this.camera.aspect = aspect;
+            const isPortrait = aspect < 1.0;
 
-            const baseZ = this.isFlatDish ? 12 : 11;
-            this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.50) : baseZ;
+            this.camera.aspect = aspect;
+            this.camera.fov = isPortrait ? 44 : 38;
+
+            this.responsiveBaseZ = isPortrait
+                ? (this.isFlatDish ? 19 : 17.5)
+                : (this.isFlatDish ? 12 : 11);
+
+            if (this.burgerGroup) {
+                this.burgerGroup.scale.setScalar(isPortrait ? 0.72 : 1.0);
+            }
 
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(w, h, false);
@@ -1409,6 +1468,12 @@ class ExplodedViewBuilder {
         window.addEventListener('resize', this.resizeHandler);
         this.closeBtn.addEventListener('click', this.closeHandler);
 
+        this.viewport.addEventListener('pointerdown', this.directPointerDown);
+        this.viewport.addEventListener('pointermove', this.directPointerMove);
+        this.viewport.addEventListener('pointerup', this.directPointerUp);
+        this.viewport.addEventListener('pointercancel', this.directPointerUp);
+        this.viewport.addEventListener('pointerleave', this.directPointerUp);
+
         const addBtn = this.footer.querySelector('#exploded-add-btn');
         if (addBtn) addBtn.addEventListener('click', this.addHandler);
     }
@@ -1426,13 +1491,18 @@ class ExplodedViewBuilder {
             layer.mesh.position.y = y;
         }
 
+        const aspectNow = window.innerWidth / window.innerHeight;
+        const isPortraitNow = aspectNow < 1.0;
+
         if (this.burgerGroup) {
+            const jitterFactor = isPortraitNow ? 0.32 : 0.55;
+
             if (this.isFlatDish) {
-                this.burgerGroup.rotation.x = (Math.PI * 0.22) + (this.smoothMouseY * 0.55);
+                this.burgerGroup.rotation.x = (Math.PI * 0.22) + (this.smoothMouseY * jitterFactor);
                 this.burgerGroup.rotation.z = -0.08;
                 this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 2.0) + (this.smoothMouseX * 0.35);
             } else {
-                this.burgerGroup.rotation.x = this.smoothMouseY * 0.55;
+                this.burgerGroup.rotation.x = this.smoothMouseY * jitterFactor;
                 this.burgerGroup.rotation.z = 0;
                 this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 1.3) + (this.smoothMouseX * 0.35);
             }
@@ -1451,10 +1521,9 @@ class ExplodedViewBuilder {
             this.ambientParticles.rotation.y += delta * 0.035;
         }
 
-        const aspect = window.innerWidth / window.innerHeight;
-        const explodeSpreadZ = aspect < 1.0 ? 3.5 : 5.5;
+        const explodeSpreadZ = isPortraitNow ? 3.5 : 5.5;
         this.camera.position.x = this.smoothMouseX * 1.4;
-        this.camera.position.y = this.smoothMouseY * 1.2;
+        this.camera.position.y = this.smoothMouseY * (isPortraitNow ? 0.6 : 1.2);
         this.camera.position.z = this.responsiveBaseZ + (this.currentProgress * explodeSpreadZ);
         this.camera.lookAt(0, 0, 0);
 
@@ -1478,7 +1547,7 @@ class ExplodedViewBuilder {
         const isMobile = aspect < 1.0;
         const centerX = w / 2;
 
-        const sideMargin = isMobile ? Math.min(w * 0.36, 140) : Math.min(w * 0.28, 210);
+        const sideMargin = isMobile ? Math.min(w * 0.38, 135) : Math.min(w * 0.28, 210);
 
         const labelOpacity = Math.max(0, Math.min(1, (this.currentProgress - 0.15) * 3));
         const slideOffset = (isMobile ? 15 : 30) * (1 - labelOpacity);
