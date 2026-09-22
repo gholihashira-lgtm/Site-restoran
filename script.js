@@ -1220,7 +1220,7 @@ class ExplodedViewBuilder {
         this.camera = new THREE.PerspectiveCamera(38, aspect, 0.1, 100);
 
         const baseZ = this.isFlatDish ? 12 : 11;
-        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.95) : baseZ;
+        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.70) : baseZ;
         this.camera.position.set(0, 0, this.responsiveBaseZ);
         this.camera.lookAt(0, 0, 0);
 
@@ -1301,7 +1301,7 @@ class ExplodedViewBuilder {
         const h = window.innerHeight;
         const aspect = w / h;
         const baseZ = this.isFlatDish ? 12 : 11;
-        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.95) : baseZ;
+        this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.70) : baseZ;
         this.camera.position.set(0, 0, this.responsiveBaseZ);
         this.camera.updateProjectionMatrix();
     }
@@ -1389,7 +1389,7 @@ class ExplodedViewBuilder {
             this.camera.aspect = aspect;
 
             const baseZ = this.isFlatDish ? 12 : 11;
-            this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.95) : baseZ;
+            this.responsiveBaseZ = aspect < 1.0 ? baseZ / (aspect * 0.70) : baseZ;
 
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(w, h, false);
@@ -1428,11 +1428,11 @@ class ExplodedViewBuilder {
 
         if (this.burgerGroup) {
             if (this.isFlatDish) {
-                this.burgerGroup.rotation.x = (Math.PI * 0.22) + (this.smoothMouseY * 0.15);
+                this.burgerGroup.rotation.x = (Math.PI * 0.22) + (this.smoothMouseY * 0.55);
                 this.burgerGroup.rotation.z = -0.08;
-                this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 2.0) + (this.smoothMouseX * 0.25);
+                this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 2.0) + (this.smoothMouseX * 0.35);
             } else {
-                this.burgerGroup.rotation.x = this.smoothMouseY * 0.12;
+                this.burgerGroup.rotation.x = this.smoothMouseY * 0.55;
                 this.burgerGroup.rotation.z = 0;
                 this.burgerGroup.rotation.y = (this.currentProgress * Math.PI * 1.3) + (this.smoothMouseX * 0.35);
             }
@@ -1454,7 +1454,7 @@ class ExplodedViewBuilder {
         const aspect = window.innerWidth / window.innerHeight;
         const explodeSpreadZ = aspect < 1.0 ? 3.5 : 5.5;
         this.camera.position.x = this.smoothMouseX * 1.4;
-        this.camera.position.y = this.smoothMouseY * 0.9;
+        this.camera.position.y = this.smoothMouseY * 1.2;
         this.camera.position.z = this.responsiveBaseZ + (this.currentProgress * explodeSpreadZ);
         this.camera.lookAt(0, 0, 0);
 
