@@ -37,10 +37,8 @@ function fdEscape(s) {
 function fdGetItems() {
     const api = window.AppAPI;
     if (!api || !Array.isArray(api.catalogProducts)) return [];
-    const vendorId = window.selectedVendorId || 'v1';
-    let list = api.catalogProducts.filter(p => p.vendorId === vendorId && p.discount > 0);
-    if (list.length < 2) list = api.catalogProducts.filter(p => p.discount > 0);
-    if (list.length < 2) list = api.catalogProducts.slice(0, 8);
+    let list = api.catalogProducts.filter(p => p.discount > 0);
+    if (list.length === 0) list = api.catalogProducts.slice(0, 8);
     return list.slice(0, 8);
 }
 
@@ -51,13 +49,13 @@ function fdRenderCard(item) {
     const stockPct = Math.min(100, Math.max(10, (item.stockLeft / 20) * 100));
 
     return `
-<div class="fd-card" data-fd-id="${item.id}" style="flex:0 0 100%;width:100%;min-width:100%;max-width:100%;box-sizing:border-box;padding:0 2px;">
-<div style="background:#fff;color:#1f2937;border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);min-height:120px;box-sizing:border-box;">
+<div class="fd-card" data-fd-id="${item.id}" style="flex:0 0 100%;width:100%;min-width:100%;max-width:100%;box-sizing:border-box;padding:0 2px;direction:rtl !important;text-align:right;">
+<div style="background:#fff;color:#1f2937;border-radius:12px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:0 2px 8px rgba(0,0,0,0.06);min-height:120px;box-sizing:border-box;direction:rtl;">
 <div class="fd-img-box" data-fd-open="${item.id}" style="position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;flex-shrink:0;background:#f9fafb;border:1px solid #f3f4f6;cursor:pointer;">
 <img src="${item.image}" alt="${fdEscape(item.title)}" draggable="false" style="width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;user-select:none;">
 ${hasDiscount ? `<span style="position:absolute;top:4px;right:4px;background:linear-gradient(135deg,#FF00A6,#EF4444);color:#fff;font-weight:900;font-size:10px;padding:2px 6px;border-radius:6px;line-height:1;">٪${fdToPersian(item.discount)}</span>` : ''}
 </div>
-<div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:6px;">
+<div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:space-between;gap:6px;direction:rtl;text-align:right;">
 <div class="fd-title" data-fd-open="${item.id}" style="font-weight:800;font-size:12px;color:#111827;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;line-height:1.4;">${fdEscape(item.title)}</div>
 <div>
 <div style="font-size:10px;color:#dc2626;font-weight:700;margin-bottom:4px;">تنها ${fdToPersian(item.stockLeft)} عدد در انبار</div>
@@ -65,7 +63,7 @@ ${hasDiscount ? `<span style="position:absolute;top:4px;right:4px;background:lin
 <div style="height:100%;width:${stockPct}%;background:linear-gradient(90deg,#e11d48,#ec4899);border-radius:9999px;"></div>
 </div>
 </div>
-<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:6px;direction:rtl;">
 <div style="min-width:0;">
 ${hasDiscount ? `<div style="font-size:10px;color:#9ca3af;text-decoration:line-through;line-height:1.2;">${fdFormatPrice(item.originalPrice)}</div>` : ''}
 <div style="font-size:12px;font-weight:900;color:#FF00A6;line-height:1.3;white-space:nowrap;">${fdFormatPrice(item.price)} <span style="font-size:9px;font-weight:400;color:#6b7280;">تومان</span></div>
@@ -287,6 +285,13 @@ function fdBindEvents() {
     fdState.bound = true;
 
     wrapper.style.touchAction = 'pan-y';
+    wrapper.style.direction = 'ltr';
+
+    const inner = document.getElementById('flash-deals-inner');
+    if (inner) {
+        inner.style.touchAction = 'pan-y';
+        inner.style.direction = 'ltr';
+    }
 
     wrapper.addEventListener('pointerdown', fdOnPointerDown, { passive: true });
 
@@ -356,7 +361,9 @@ function fdRenderAll() {
     }
 
     wrap.style.touchAction = 'pan-y';
+    wrap.style.direction = 'ltr';
     inner.style.touchAction = 'pan-y';
+    inner.style.direction = 'ltr';
 
     fdState.items = fdGetItems();
     fdState.index = 0;

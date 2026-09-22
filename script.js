@@ -1550,9 +1550,10 @@ class ExplodedViewBuilder {
         const centerX = w / 2;
 
         const labelOpacity = Math.max(0, Math.min(1, (this.currentProgress - 0.15) * 3));
-        const slideOffset = (isMobile ? 10 : 30) * (1 - labelOpacity);
 
         const v = this._tempVec || (this._tempVec = new this.THREE.Vector3());
+
+        const sideMargin = isMobile ? 55 : 85;
 
         for (let i = 0; i < this.layers.length; i++) {
             const el = this.labelEls[i];
@@ -1568,27 +1569,14 @@ class ExplodedViewBuilder {
 
             const isLeft = el.dataset.side === 'left';
 
-            if (isMobile) {
-                const safeEdgePadding = 8;
-
-                if (isLeft) {
-                    el.style.left = safeEdgePadding + 'px';
-                    el.style.transform = `translate(0, -50%) translateX(${-slideOffset}px)`;
-                } else {
-                    el.style.left = (w - safeEdgePadding) + 'px';
-                    el.style.transform = `translate(-100%, -50%) translateX(${slideOffset}px)`;
-                }
-            } else {
-                const sideMargin = Math.min(w * 0.28, 210);
-                const anchorX = centerX + (isLeft ? -sideMargin : sideMargin);
-
+            if (isLeft) {
+                const anchorX = centerX - sideMargin;
                 el.style.left = anchorX + 'px';
-
-                if (isLeft) {
-                    el.style.transform = `translate(-100%, -50%) translateX(${-slideOffset}px)`;
-                } else {
-                    el.style.transform = `translate(0, -50%) translateX(${slideOffset}px)`;
-                }
+                el.style.transform = 'translate(-100%, -50%)';
+            } else {
+                const anchorX = centerX + sideMargin;
+                el.style.left = anchorX + 'px';
+                el.style.transform = 'translate(0, -50%)';
             }
 
             el.style.top = screenY + 'px';
