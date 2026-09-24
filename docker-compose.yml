@@ -1,0 +1,78 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: loghme_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: loghme
+      POSTGRES_PASSWORD: loghme_secret_2024
+      POSTGRES_DB: loghme_db
+      PGDATA: /var/lib/postgresql/data/pgdata
+      TZ: Asia/Tehran
+    ports:
+      - "5432:5432"
+    volumes:
+      - loghme_pg_data:/var/lib/postgresql/data
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loghme -d loghme_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - loghme_network
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: loghme_redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass loghme_redis_secret_2024
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - loghme_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "loghme_redis_secret_2024", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - loghme_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: loghme_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@loghme.local
+      PGADMIN_DEFAULT_PASSWORD: admin_2024
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - loghme_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - loghme_network
+
+volumes:
+  loghme_pg_data:
+    driver: local
+  loghme_redis_data:
+    driver: local
+  loghme_pgadmin_data:
+    driver: local
+
+networks:
+  loghme_network:
+    driver: bridge

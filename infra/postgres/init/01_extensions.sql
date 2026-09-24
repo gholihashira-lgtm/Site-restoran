@@ -1,0 +1,17 @@
+-- ============================================================================
+-- Loghme PostgreSQL Extensions Bootstrap
+-- Auto-executed by Docker Postgres image on first container startup
+-- ============================================================================
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+CREATE EXTENSION IF NOT EXISTS "postgis";
+CREATE EXTENSION IF NOT EXISTS "postgis_topology";
+CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+CREATE EXTENSION IF NOT EXISTS "btree_gist";
+CREATE EXTENSION IF NOT EXISTS "unaccent";
+
+DO $$
+BEGIN
+    RAISE NOTICE 'Loghme extensions initialized at %', NOW();
+END $$;
