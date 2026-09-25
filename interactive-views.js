@@ -14,7 +14,7 @@ function clearViewIntervals() {
 }
 
 /* ==========================================================================
- * MOCK DATASETS FOR VIEWS
+ * MOCK DATASETS FOR VIEWS (IDs synced with catalog in script.js)
  * ========================================================================== */
 
 const pastOrders = [
@@ -33,8 +33,8 @@ const pastOrders = [
         totalPaid: 935000,
         rated: false,
         items: [
-            { id: 8, name: 'چلو کباب کوبیده مخصوص توسکا', qty: 2, price: 450000, image: 'https://images.unsplash.com/photo-1627012046423-93d39da6a8b7?w=200&q=80' },
-            { id: 9, name: 'دوغ آبعلی شیشه‌ای خنک', qty: 1, price: 35000, image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=200&q=80' }
+            { id: 23, name: 'چلو کباب کوبیده گوسفندی', qty: 2, price: 450000, image: 'https://images.unsplash.com/photo-1627012046423-93d39da6a8b7?w=200&q=80' },
+            { id: 45, name: 'دوغ محلی نعنایی آبعلی', qty: 1, price: 35000, image: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=200&q=80' }
         ]
     },
     {
@@ -53,7 +53,7 @@ const pastOrders = [
         rated: true,
         ratingValue: 5,
         items: [
-            { id: 5, name: 'پیتزا پپرونی تنوری ایتالیایی', qty: 1, price: 320000, image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=200&q=80' }
+            { id: 15, name: 'پیتزا پپرونی تنوری', qty: 1, price: 320000, image: 'https://images.unsplash.com/photo-1628840042765-356cda07504e?w=200&q=80' }
         ]
     },
     {
@@ -78,7 +78,7 @@ const pastOrders = [
 
 const hotDeals = [
     {
-        id: 10,
+        id: 101,
         vendorId: 'v_sweets',
         vendorName: 'کافه باقلوا سیلوا',
         vendorLogo: 'https://images.unsplash.com/photo-1559553156-2e97137af16f?w=100&q=80',
@@ -93,7 +93,7 @@ const hotDeals = [
         image: 'https://images.unsplash.com/photo-1599598425947-33002629b5fa?w=300&q=80'
     },
     {
-        id: 11,
+        id: 102,
         vendorId: 'v_sweets',
         vendorName: 'کافه باقلوا سیلوا',
         vendorLogo: 'https://images.unsplash.com/photo-1559553156-2e97137af16f?w=100&q=80',
@@ -137,7 +137,7 @@ window.IV_API = {
     },
 
     openInvoice: function(orderId) {
-        const order = pastOrders.find(o => o.id === orderId);
+        const order = pastOrders.find(o => Number(o.id) === Number(orderId));
         if (!order) return;
 
         const existing = document.getElementById('invoice-modal');
@@ -233,13 +233,13 @@ window.IV_API = {
     },
 
     reorder: function(orderId) {
-        const order = pastOrders.find(o => o.id === orderId);
+        const order = pastOrders.find(o => Number(o.id) === Number(orderId));
         if (!order) return;
 
         window.AppAPI.clearCart();
         order.items.forEach(item => {
             for (let i = 0; i < item.qty; i++) {
-                window.AppAPI.handleAddToCart(item.id, [], order.vendorId);
+                window.AppAPI.handleAddToCart(Number(item.id), [], order.vendorId);
             }
         });
 
@@ -249,7 +249,7 @@ window.IV_API = {
     },
 
     openRating: function(orderId) {
-        const order = pastOrders.find(o => o.id === orderId);
+        const order = pastOrders.find(o => Number(o.id) === Number(orderId));
         if (!order || order.rated) return;
 
         window.IV_STATE.activeRatingOrderId = orderId;
@@ -341,7 +341,7 @@ window.IV_API = {
             return;
         }
 
-        const order = pastOrders.find(o => o.id === orderId);
+        const order = pastOrders.find(o => Number(o.id) === Number(orderId));
         if (order) {
             order.rated = true;
             order.ratingValue = rating;
@@ -363,19 +363,29 @@ window.IV_API = {
     },
 
     addDealToCart: function(dealId) {
-        const deal = hotDeals.find(d => d.id === dealId);
+        const numId = Number(dealId);
+        const deal = hotDeals.find(d => Number(d.id) === numId);
         if (!deal) return;
 
-        if (!window.AppAPI.catalogProducts.find(p => p.id === dealId)) {
+        if (!window.AppAPI.catalogProducts.find(p => Number(p.id) === numId)) {
             window.AppAPI.catalogProducts.push({
-                id: deal.id, vendorId: deal.vendorId, categoryId: 'sweets', title: deal.title, 
-                desc: 'شیرینی و باقلوا ویژه', price: deal.price, originalPrice: deal.originalPrice, 
-                discount: deal.discount, stockLeft: 5, rating: deal.rating, reviews: 100, 
-                image: deal.image, addons: []
+                id: deal.id,
+                vendorId: deal.vendorId,
+                categoryId: 'sweets',
+                title: deal.title, 
+                desc: 'شیرینی و باقلوا ویژه',
+                price: deal.price,
+                originalPrice: deal.originalPrice, 
+                discount: deal.discount,
+                stockLeft: 5,
+                rating: deal.rating,
+                reviews: 100, 
+                image: deal.image,
+                addons: []
             });
         }
 
-        window.AppAPI.handleAddToCart(deal.id, [], deal.vendorId);
+        window.AppAPI.handleAddToCart(numId, [], deal.vendorId);
         window.IV_API.showToast(`«${deal.title}» به سبد خرید افزوده شد.`);
     },
 

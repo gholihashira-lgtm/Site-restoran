@@ -190,10 +190,18 @@ const FOOD_IMAGE_POOL = {
         'photo-1603360946369-dc9bb6258143'
     ],
     traditional: [
+        'photo-1519708227418-c8fd9a32b7a2',
+        'photo-1534422298391-e4f8c172dddb',
         'photo-1588168333986-5078d3ae3976',
+        'photo-1596797038530-2c107229654b',
         'photo-1604908176997-125f25cc6f3d',
         'photo-1631515243349-e0cb75fb8d3a',
-        'photo-1627308595186-b4b3b3cbce20'
+        'photo-1627308595186-b4b3b3cbce20',
+        'photo-1546069901-ba9599a7e63c',
+        'photo-1563379091339-03b21ab4a4f8',
+        'photo-1574484284002-952d92456975',
+        'photo-1565299585323-38d6b0865b47',
+        'photo-1598515214211-89d3c73ae83b'
     ],
     ash: [
         'photo-1547592180-85f173990554',
@@ -755,7 +763,6 @@ const promoBanners = [
 
 let selectedVendorId   = 'v1';
 let cartState          = { vendorId: null, items: {} };
-let pendingCartAction  = null;
 let wishlistState      = [];
 let selectedCategory   = 'all';
 let currentSort        = 'all';
@@ -794,6 +801,16 @@ function formatPrice(a) {
         }
     }
     return toPersianDigits(out);
+}
+
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 
 window.AppAPI = {
@@ -1312,83 +1329,145 @@ function getCartTotalItems() {
     return Object.values(cartState.items).reduce((acc, cur) => acc + cur.quantity, 0);
 }
 
-function showCartClearConfirm() {
-    let modal = document.getElementById('cart-confirm-modal');
-    if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'cart-confirm-modal';
-        modal.className = 'fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300';
-        modal.innerHTML = `
-            <div class="bg-white rounded-2xl w-full max-w-[320px] p-5 cart-confirm-modal shadow-2xl font-vazir">
-                <div class="w-12 h-12 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </div>
-                <h3 class="text-sm font-black text-center text-gray-900 mb-2">شروع سفارش جدید؟</h3>
-                <p class="text-xs text-gray-500 text-center leading-relaxed mb-6">سبد خرید شما حاوی آیتم‌هایی از رستوران دیگری است. آیا مایلید سبد قبلی پاک شود؟</p>
-                <div class="flex gap-3">
-                    <button onclick="cancelCartClear()" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-bold active:scale-95 transition-all">خیر، انصراف</button>
-                    <button onclick="confirmCartClear()" class="flex-1 py-2.5 rounded-xl bg-snapp text-white text-xs font-bold active:scale-95 transition-all shadow-md shadow-pink-500/20">بله، پاک شود</button>
+/* ============================================================
+ * Floating bottom "View Cart" snack-bar prompt
+ * ============================================================ */
+let __cartPromptTimer = null;
+let __cartPromptHideTimer = null;
+
+function dismissCartPrompt() {
+    if (__cartPromptTimer) {
+        clearTimeout(__cartPromptTimer);
+        __cartPromptTimer = null;
+    }
+    if (__cartPromptHideTimer) {
+        clearTimeout(__cartPromptHideTimer);
+        __cartPromptHideTimer = null;
+    }
+
+    const banner = document.getElementById('cart-add-prompt');
+    if (!banner) return;
+
+    banner.classList.remove('translate-y-0', 'opacity-100');
+    banner.classList.add('translate-y-10', 'opacity-0');
+    __cartPromptHideTimer = setTimeout(() => {
+        if (banner && banner.parentNode) banner.remove();
+        __cartPromptHideTimer = null;
+    }, 300);
+}
+
+function showAddToCartPrompt(product) {
+    if (!product) return;
+
+    if (__cartPromptTimer) {
+        clearTimeout(__cartPromptTimer);
+        __cartPromptTimer = null;
+    }
+    if (__cartPromptHideTimer) {
+        clearTimeout(__cartPromptHideTimer);
+        __cartPromptHideTimer = null;
+    }
+
+    let banner = document.getElementById('cart-add-prompt');
+    const isNewBanner = !banner;
+
+    if (isNewBanner) {
+        banner = document.createElement('div');
+        banner.id = 'cart-add-prompt';
+        banner.className = 'fixed bottom-20 left-1/2 -translate-x-1/2 z-[9999] w-[92%] max-w-sm bg-gray-900 text-white p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-white/10 font-vazir transition-all duration-300 transform translate-y-10 opacity-0';
+        document.body.appendChild(banner);
+    }
+
+    banner.innerHTML = `
+        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <img src="${product.image}" class="w-11 h-11 rounded-xl object-cover border border-white/20 shrink-0">
+            <div class="min-w-0 flex-1">
+                <div class="text-[11px] font-black truncate">${escapeHtml(product.title)}</div>
+                <div class="text-[9px] text-emerald-400 font-bold mt-0.5 flex items-center gap-1">
+                    <i data-lucide="check-circle-2" class="w-3 h-3"></i>
+                    <span>به سبد خرید اضافه شد</span>
                 </div>
             </div>
-        `;
-        document.body.appendChild(modal);
-    }
-    modal.classList.remove('opacity-0', 'pointer-events-none');
-    modal.classList.add('opacity-100');
-}
+        </div>
+        <button id="cart-add-prompt-view-btn"
+                class="bg-snapp hover:bg-snapp-hover active:scale-95 text-white text-[11px] font-black px-3.5 py-2.5 rounded-xl shrink-0 shadow-md shadow-pink-500/30 transition-all flex items-center gap-1.5">
+            <span>مشاهده سبد خرید</span>
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+        </button>
+    `;
 
-function cancelCartClear() {
-    pendingCartAction = null;
-    const modal = document.getElementById('cart-confirm-modal');
-    if (modal) {
-        modal.classList.remove('opacity-100');
-        modal.classList.add('opacity-0', 'pointer-events-none');
-    }
-}
+    if (window.lucide) lucide.createIcons();
 
-function confirmCartClear() {
-    if (pendingCartAction) {
-        cartState.items = {};
-        executeAddToCart(pendingCartAction.productId, pendingCartAction.customAddons, pendingCartAction.newVendorId);
-        pendingCartAction = null;
+    const viewBtn = banner.querySelector('#cart-add-prompt-view-btn');
+    if (viewBtn) {
+        viewBtn.onclick = (e) => {
+            e.stopPropagation();
+            dismissCartPrompt();
+            toggleCartDrawer(true);
+        };
     }
-    cancelCartClear();
+
+    if (isNewBanner) {
+        requestAnimationFrame(() => {
+            banner.classList.remove('translate-y-10', 'opacity-0');
+            banner.classList.add('translate-y-0', 'opacity-100');
+        });
+    } else {
+        banner.classList.remove('translate-y-10', 'opacity-0');
+        banner.classList.add('translate-y-0', 'opacity-100');
+    }
+
+    __cartPromptTimer = setTimeout(() => {
+        __cartPromptTimer = null;
+        dismissCartPrompt();
+    }, 5000);
 }
 
 function handleAddToCart(productId, customAddons = [], overrideVendorId = null) {
-    const product = catalogProducts.find(p => p.id === productId);
+    const numId = Number(productId);
+    const product = catalogProducts.find(p => Number(p.id) === numId);
     if (!product) return;
 
     const vendorTarget = overrideVendorId || product.vendorId;
 
-    if (cartState.vendorId && cartState.vendorId !== vendorTarget && getCartTotalItems() > 0) {
-        pendingCartAction = { productId, customAddons, newVendorId: vendorTarget };
-        showCartClearConfirm();
-        return;
+    const cartHasItems = getCartTotalItems() > 0;
+    const isDifferentVendor = cartState.vendorId && cartState.vendorId !== vendorTarget;
+
+    if (cartHasItems && isDifferentVendor) {
+        cartState.items = {};
+        cartState.vendorId = null;
     }
-    executeAddToCart(productId, customAddons, vendorTarget);
+
+    executeAddToCart(numId, customAddons, vendorTarget);
 }
 
 function executeAddToCart(productId, addons, vendorId) {
+    const numId = Number(productId);
     cartState.vendorId = vendorId;
-    if (!cartState.items[productId]) {
-        cartState.items[productId] = { quantity: 1, addons: addons };
+
+    if (!cartState.items[numId]) {
+        cartState.items[numId] = { quantity: 1, addons: addons };
     } else {
-        cartState.items[productId].quantity += 1;
-        if (addons && addons.length > 0) cartState.items[productId].addons = addons;
+        cartState.items[numId].quantity += 1;
+        if (addons && addons.length > 0) cartState.items[numId].addons = addons;
     }
+
     updateApplicationState();
+
+    const product = catalogProducts.find(p => Number(p.id) === numId);
+    if (product) {
+        showAddToCartPrompt(product);
+    }
 }
 
 function handleDecrementCart(productId) {
-    if (!cartState.items[productId]) return;
-    if (cartState.items[productId].quantity <= 1) {
-        delete cartState.items[productId];
+    const numId = Number(productId);
+    if (!cartState.items[numId]) return;
+    if (cartState.items[numId].quantity <= 1) {
+        delete cartState.items[numId];
         if (getCartTotalItems() === 0) cartState.vendorId = null;
     } else {
-        cartState.items[productId].quantity -= 1;
+        cartState.items[numId].quantity -= 1;
     }
     updateApplicationState();
 }
@@ -1406,7 +1485,7 @@ function updateCartSummary() {
     let totalSavings = 0;
 
     for (const [id, state] of Object.entries(cartState.items)) {
-        const product = catalogProducts.find(p => p.id == id);
+        const product = catalogProducts.find(p => Number(p.id) === Number(id));
         if (!product) continue;
         totalCount += state.quantity;
         let unitPrice = product.price;
@@ -1495,7 +1574,7 @@ function renderDrawerItems() {
     }
 
     container.innerHTML = items.map(([id, state]) => {
-        const item = catalogProducts.find(p => p.id == id);
+        const item = catalogProducts.find(p => Number(p.id) === Number(id));
         if (!item) return '';
         let rowPrice = item.price;
         if (state.addons && state.addons.length > 0) {
@@ -1532,6 +1611,7 @@ function toggleCartDrawer(open) {
 
     if (open) {
         renderDrawerItems();
+        updateCartSummary();
         backdrop.classList.remove('pointer-events-none', 'opacity-0');
         backdrop.classList.add('opacity-100');
         drawer.classList.remove('translate-y-full');
@@ -1568,7 +1648,7 @@ function applyCoupon() {
 async function executeCheckout() {
     let subtotal = 0;
     for (const [id, state] of Object.entries(cartState.items)) {
-        const product = catalogProducts.find(p => p.id == id);
+        const product = catalogProducts.find(p => Number(p.id) === Number(id));
         if (!product) continue;
         let unitPrice = product.price;
         if (state.addons && state.addons.length > 0) {
@@ -1628,14 +1708,15 @@ async function executeCheckout() {
 }
 
 async function openProductModal(productId) {
+    const numId = Number(productId);
     if (typeof window.openProductDetail === 'function') {
-        window.openProductDetail(productId);
+        window.openProductDetail(numId);
         return;
     }
     try {
         const mod = await import('./script_2.js');
         if (mod && mod.ExplodedViewBuilder) {
-            const product = catalogProducts.find(p => p.id === productId);
+            const product = catalogProducts.find(p => Number(p.id) === numId);
             if (product) new mod.ExplodedViewBuilder(product);
         }
     } catch (err) {
@@ -1644,9 +1725,10 @@ async function openProductModal(productId) {
 }
 
 function toggleWishlist(productId) {
-    const idx = wishlistState.indexOf(productId);
+    const numId = Number(productId);
+    const idx = wishlistState.indexOf(numId);
     if (idx > -1) wishlistState.splice(idx, 1);
-    else wishlistState.push(productId);
+    else wishlistState.push(numId);
     updateWishlistBadge();
     renderCatalog();
 }
@@ -1675,7 +1757,7 @@ function openWishlistModal() {
         list.innerHTML = '<p class="text-center py-8 text-xs text-gray-400 font-bold font-vazir">هنوز کالایی به علاقه‌مندی‌ها اضافه نکرده‌اید.</p>';
     } else {
         list.innerHTML = wishlistState.map(id => {
-            const product = catalogProducts.find(p => p.id === id);
+            const product = catalogProducts.find(p => Number(p.id) === Number(id));
             if (!product) return '';
             return `
                 <div class="py-2.5 flex items-center justify-between font-vazir">
@@ -1912,6 +1994,15 @@ function startFlashCountdown() {
 
 async function initApp() {
     loadGenerator().catch(() => {});
+
+    try {
+        const fig = await import('./food-image-generator.js');
+        if (fig && typeof fig.refreshAllCatalogImages === 'function') {
+            fig.refreshAllCatalogImages(catalogProducts);
+        }
+    } catch (e) {
+        console.warn('[Bootstrap] food-image-generator.js not available');
+    }
 
     let storiesHandledByModule = false;
     try {

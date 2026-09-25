@@ -982,7 +982,7 @@ export class ExplodedViewBuilder {
         this.closeHandler = () => this.destroy();
         this.addHandler = () => {
             if (window.AppAPI && typeof window.AppAPI.handleAddToCart === 'function') {
-                window.AppAPI.handleAddToCart(this.product.id, []);
+                window.AppAPI.handleAddToCart(Number(this.product.id), []);
             }
             this.destroy();
         };
@@ -1522,7 +1522,7 @@ function lySendMessage() {
 
 function lyHandleAddToCart(productId, btnEl) {
     if (!window.AppAPI || typeof window.AppAPI.handleAddToCart !== 'function') return;
-    window.AppAPI.handleAddToCart(productId, []);
+    window.AppAPI.handleAddToCart(Number(productId), []);
     lyToast('به سبد خرید اضافه شد 🛒');
     if (btnEl) {
         btnEl.innerHTML = `<i data-lucide="check" style="width:12px;height:12px;"></i> اضافه شد`;
@@ -1548,7 +1548,7 @@ function lyHandleBundleAdd(vendorId, btnEl) {
     if (!bundle || bundle.vendorId !== vendorId) return;
 
     const parts = [bundle.main, bundle.drink, bundle.app].filter(Boolean);
-    parts.forEach(p => api.handleAddToCart(p.id, [], bundle.vendorId));
+    parts.forEach(p => api.handleAddToCart(Number(p.id), [], bundle.vendorId));
 
     lyToast(`پک ${lyToPersian(parts.length)} آیتمی به سبد اضافه شد 🎉`);
     if (btnEl) {
@@ -1600,7 +1600,7 @@ function lyBuildModal() {
             <div class="ly-chips">
                 ${LY_PROMPTS.map(p => `
                     <button class="ly-chip" data-ly-prompt="${p.key}">
-                        ${p.icon} ${p.text}
+                        ${p.icon}${p.text}
                     </button>
                 `).join('')}
             </div>

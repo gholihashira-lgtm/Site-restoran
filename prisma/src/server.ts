@@ -1,7 +1,6 @@
 /* ============================================================================
  * Loghme Backend — Single-File Express Server
- * Handles: Auth (OTP+JWT), Vendors, Products, Cart, Orders, Wallet, Coupons,
- *          Addresses, Notifications, Stories, and Live Courier Tracking (WS)
+ * PostgreSQL (Local or Cloud) + Optional Redis + In-Memory Fallback
  * ========================================================================== */
 
 import express, { Request, Response, NextFunction } from 'express';
@@ -25,13 +24,114 @@ const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || '30d';
 const OTP_TTL = parseInt(process.env.OTP_TTL_SECONDS || '120', 10);
 const OTP_MAX_ATTEMPTS = parseInt(process.env.OTP_MAX_ATTEMPTS || '5', 10);
 const OTP_RESEND_COOLDOWN = parseInt(process.env.OTP_RESEND_COOLDOWN || '60', 10);
-const CORS_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5500,http://127.0.0.1:5500').split(',');
+const CORS_ORIGINS = (process.env.CORS_ORIGINS || 'http://localhost:5500,http://127.0.0.1:5500,http://localhost:3000,http://localhost:5173').split(',');
 
+/* ============================================================================
+ * PRISMA CLIENT
+ * ========================================================================== */
 const prisma = new PrismaClient({ log: ['warn', 'error'] });
-const redis = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-    enableReadyCheck: false,
-});
+
+/* ============================================================================
+ * REDIS — REAL OR IN-MEMORY FALLBACK
+ * ========================================================================== */
+
+interface CacheLike {
+    get(key: string): Promise<string | null>;
+    set(key: string, value: string): Promise<'OK'>;
+    setex(key: string, seconds: number, value: string): Promise<'OK'>;
+    del(...keys: string[]): Promise<number>;
+    incr(key: string): Promise<number>;
+    ttl(key: string): Promise<number>;
+    disconnect(): void;
+}
+
+class InMemoryRedis implements CacheLike {
+    private store = new Map<string, { value: string; expiresAt: number | null }>();
+    private sweeper: NodeJS.Timeout;
+
+    constructor() {
+        this.sweeper = setInterval(() => this.sweep(), 60_000);
+        if (this.sweeper.unref) this.sweeper.unref();
+    }
+
+    private sweep() {
+        const now = Date.now();
+        for (const [k, v] of this.store.entries()) {
+            if (v.expiresAt !== null && now > v.expiresAt) this.store.delete(k);
+        }
+    }
+
+    private isExpired(entry: { expiresAt: number | null }): boolean {
+        return entry.expiresAt !== null && Date.now() > entry.expiresAt;
+    }
+
+    async get(key: string): Promise<string | null> {
+        const entry = this.store.get(key);
+        if (!entry) return null;
+        if (this.isExpired(entry)) {
+            this.store.delete(key);
+            return null;
+        }
+        return entry.value;
+    }
+
+    async set(key: string, value: string): Promise<'OK'> {
+        this.store.set(key, { value, expiresAt: null });
+        return 'OK';
+    }
+
+    async setex(key: string, seconds: number, value: string): Promise<'OK'> {
+        this.store.set(key, { value, expiresAt: Date.now() + seconds * 1000 });
+        return 'OK';
+    }
+
+    async del(...keys: string[]): Promise<number> {
+        let count = 0;
+        for (const k of keys) if (this.store.delete(k)) count++;
+        return count;
+    }
+
+    async incr(key: string): Promise<number> {
+        const entry = this.store.get(key);
+        const current = entry && !this.isExpired(entry) ? parseInt(entry.value, 10) || 0 : 0;
+        const next = current + 1;
+        this.store.set(key, { value: String(next), expiresAt: entry?.expiresAt ?? null });
+        return next;
+    }
+
+    async ttl(key: string): Promise<number> {
+        const entry = this.store.get(key);
+        if (!entry) return -2;
+        if (entry.expiresAt === null) return -1;
+        const remaining = Math.ceil((entry.expiresAt - Date.now()) / 1000);
+        if (remaining <= 0) {
+            this.store.delete(key);
+            return -2;
+        }
+        return remaining;
+    }
+
+    disconnect(): void {
+        clearInterval(this.sweeper);
+        this.store.clear();
+    }
+}
+
+const REDIS_URL = process.env.REDIS_URL || '';
+const isCloudRedis = /^rediss?:\/\//i.test(REDIS_URL) && !/localhost|127\.0\.0\.1/i.test(REDIS_URL);
+
+let redis: CacheLike;
+if (isCloudRedis) {
+    console.log(`[Cache] Connecting to cloud Redis at ${REDIS_URL.replace(/:[^@]*@/, ':***@')}`);
+    redis = new Redis(REDIS_URL, { maxRetriesPerRequest: null, enableReadyCheck: false }) as any;
+} else {
+    console.log('[Cache] Using in-memory cache fallback (no external Redis required)');
+    redis = new InMemoryRedis();
+}
+
+/* ============================================================================
+ * UTILITIES
+ * ========================================================================== */
 
 const FA_DIGITS = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
 function toPersianDigits(n: number | string): string {
@@ -45,6 +145,7 @@ function genTrackingCode(): string {
 function jsonSafe(obj: any): any {
     if (obj === null || obj === undefined) return obj;
     if (typeof obj === 'bigint') return Number(obj);
+    if (obj instanceof Date) return obj;
     if (Array.isArray(obj)) return obj.map(jsonSafe);
     if (typeof obj === 'object') {
         const out: any = {};
@@ -96,6 +197,10 @@ function authRequired(req: Request, res: Response, next: NextFunction) {
         return fail(res, 'توکن منقضی یا نامعتبر است.', 401, 'INVALID_TOKEN');
     }
 }
+
+/* ============================================================================
+ * OTP
+ * ========================================================================== */
 
 async function sendOtp(phone: string): Promise<{ ok: boolean; message: string; code?: string }> {
     const cooldownKey = `otp:cooldown:${phone}`;
@@ -155,6 +260,10 @@ async function verifyOtp(phone: string, code: string): Promise<{ ok: boolean; me
 
     return { ok: true, message: 'ورود موفق', userId: user.id, isNew };
 }
+
+/* ============================================================================
+ * EXPRESS APP
+ * ========================================================================== */
 
 const app = express();
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -264,6 +373,10 @@ app.get('/api/auth/me', authRequired, async (req, res) => {
     });
 });
 
+/* ---------------------------------------------------------------------------
+ * VENDORS & PRODUCTS
+ * ------------------------------------------------------------------------- */
+
 app.get('/api/vendors', async (req, res) => {
     const { featured, status } = req.query;
     const vendors = await prisma.vendor.findMany({
@@ -336,6 +449,10 @@ app.get('/api/products/:id', async (req, res) => {
     ok(res, product);
 });
 
+/* ---------------------------------------------------------------------------
+ * ADDRESSES
+ * ------------------------------------------------------------------------- */
+
 app.get('/api/addresses', authRequired, async (req, res) => {
     const items = await prisma.address.findMany({
         where: { userId: req.user!.id, isActive: true },
@@ -357,7 +474,12 @@ app.post('/api/addresses', authRequired, async (req, res) => {
 
     const count = await prisma.address.count({ where: { userId: req.user!.id } });
     const addr = await prisma.address.create({
-        data: { ...parsed.data, userId: req.user!.id, isDefault: count === 0, icon: parsed.data.tag === 'HOME' ? 'home' : parsed.data.tag === 'WORK' ? 'briefcase' : 'map-pin' },
+        data: {
+            ...parsed.data,
+            userId: req.user!.id,
+            isDefault: count === 0,
+            icon: parsed.data.tag === 'HOME' ? 'home' : parsed.data.tag === 'WORK' ? 'briefcase' : 'map-pin',
+        },
     });
     ok(res, addr, 201);
 });
@@ -383,6 +505,10 @@ app.post('/api/addresses/:id/default', authRequired, async (req, res) => {
     ]);
     ok(res, { message: 'آدرس پیش‌فرض تغییر یافت.' });
 });
+
+/* ---------------------------------------------------------------------------
+ * CART
+ * ------------------------------------------------------------------------- */
 
 async function getOrCreateCart(userId: string) {
     let cart = await prisma.cart.findUnique({ where: { userId }, include: { items: { include: { product: true } } } });
@@ -466,12 +592,18 @@ app.delete('/api/cart', authRequired, async (req, res) => {
     ok(res, { message: 'سبد خالی شد.' });
 });
 
+/* ---------------------------------------------------------------------------
+ * COUPONS
+ * ------------------------------------------------------------------------- */
+
 app.post('/api/coupons/validate', authRequired, async (req, res) => {
     const { code, subtotal } = req.body || {};
     const coupon = await prisma.coupon.findUnique({ where: { code: String(code).toUpperCase() } });
     if (!coupon || !coupon.isActive) return fail(res, 'کد تخفیف نامعتبر است.', 404);
     if (coupon.expiresAt < new Date()) return fail(res, 'کد تخفیف منقضی شده.', 400);
-    if (subtotal < Number(coupon.minOrderValue)) return fail(res, `حداقل مبلغ سفارش برای این کد ${toPersianDigits(Number(coupon.minOrderValue))} تومان است.`, 400);
+    if (subtotal < Number(coupon.minOrderValue)) {
+        return fail(res, `حداقل مبلغ سفارش برای این کد ${toPersianDigits(Number(coupon.minOrderValue))} تومان است.`, 400);
+    }
 
     let discount = coupon.type === 'PERCENT'
         ? Math.round(subtotal * Number(coupon.value) / 100)
@@ -480,6 +612,10 @@ app.post('/api/coupons/validate', authRequired, async (req, res) => {
 
     ok(res, { code: coupon.code, type: coupon.type, discount, title: coupon.title });
 });
+
+/* ---------------------------------------------------------------------------
+ * ORDERS
+ * ------------------------------------------------------------------------- */
 
 app.post('/api/orders', authRequired, async (req, res) => {
     const schema = z.object({
@@ -620,7 +756,11 @@ app.get('/api/orders', authRequired, async (req, res) => {
 app.get('/api/orders/:id', authRequired, async (req, res) => {
     const order = await prisma.order.findFirst({
         where: { id: req.params.id, userId: req.user!.id },
-        include: { items: true, vendor: true, address: true, statusHistory: { orderBy: { createdAt: 'asc' } }, courierAssign: { include: { courier: { include: { user: { select: { fullName: true } } } } } } },
+        include: {
+            items: true, vendor: true, address: true,
+            statusHistory: { orderBy: { createdAt: 'asc' } },
+            courierAssign: { include: { courier: { include: { user: { select: { fullName: true } } } } } },
+        },
     });
     if (!order) return fail(res, 'سفارش پیدا نشد.', 404);
     ok(res, order);
@@ -633,8 +773,13 @@ app.post('/api/orders/:id/cancel', authRequired, async (req, res) => {
         return fail(res, 'این سفارش در وضعیت قابل لغو نیست.', 400);
     }
     await prisma.$transaction([
-        prisma.order.update({ where: { id: order.id }, data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: req.body?.reason || 'لغو توسط کاربر' } }),
-        prisma.orderStatusHistory.create({ data: { orderId: order.id, status: 'CANCELLED', note: req.body?.reason || 'لغو توسط کاربر' } }),
+        prisma.order.update({
+            where: { id: order.id },
+            data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: req.body?.reason || 'لغو توسط کاربر' },
+        }),
+        prisma.orderStatusHistory.create({
+            data: { orderId: order.id, status: 'CANCELLED', note: req.body?.reason || 'لغو توسط کاربر' },
+        }),
     ]);
     ok(res, { message: 'سفارش لغو شد.' });
 });
@@ -659,6 +804,10 @@ app.post('/api/orders/:id/rating', authRequired, async (req, res) => {
     });
     ok(res, rating, 201);
 });
+
+/* ---------------------------------------------------------------------------
+ * WALLET
+ * ------------------------------------------------------------------------- */
 
 app.get('/api/wallet', authRequired, async (req, res) => {
     const wallet = await prisma.wallet.findUnique({
@@ -692,6 +841,10 @@ app.post('/api/wallet/topup', authRequired, async (req, res) => {
     ok(res, result, 201);
 });
 
+/* ---------------------------------------------------------------------------
+ * NOTIFICATIONS
+ * ------------------------------------------------------------------------- */
+
 app.get('/api/notifications', authRequired, async (req, res) => {
     const items = await prisma.notification.findMany({
         where: { userId: req.user!.id },
@@ -716,6 +869,10 @@ app.post('/api/notifications/read-all', authRequired, async (req, res) => {
     });
     ok(res, { message: 'همه خوانده شد.' });
 });
+
+/* ---------------------------------------------------------------------------
+ * STORIES / CATEGORIES / BANNERS
+ * ------------------------------------------------------------------------- */
 
 app.get('/api/stories', async (_req, res) => {
     const items = await prisma.story.findMany({
@@ -742,9 +899,29 @@ app.get('/api/promo-banners', async (_req, res) => {
     ok(res, items);
 });
 
-app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', time: new Date().toISOString() });
+/* ---------------------------------------------------------------------------
+ * HEALTH
+ * ------------------------------------------------------------------------- */
+
+app.get('/api/health', async (_req, res) => {
+    let dbStatus = 'unknown';
+    try {
+        await prisma.$queryRaw`SELECT 1`;
+        dbStatus = 'connected';
+    } catch {
+        dbStatus = 'error';
+    }
+    res.json({
+        status: 'ok',
+        time: new Date().toISOString(),
+        db: dbStatus,
+        cache: isCloudRedis ? 'redis' : 'in-memory',
+    });
 });
+
+/* ---------------------------------------------------------------------------
+ * ERROR HANDLER
+ * ------------------------------------------------------------------------- */
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     console.error('[Server Error]', err);
@@ -752,6 +929,10 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     if (err?.code === 'P2025') return fail(res, 'رکورد پیدا نشد.', 404, 'NOT_FOUND');
     fail(res, err?.message || 'خطای داخلی سرور.', 500, 'INTERNAL');
 });
+
+/* ---------------------------------------------------------------------------
+ * SOCKET.IO
+ * ------------------------------------------------------------------------- */
 
 const httpServer = createServer(app);
 const io = new SocketServer(httpServer, {
@@ -852,11 +1033,13 @@ export async function pushNotification(userId: string, notif: { type: string; ti
 httpServer.listen(PORT, () => {
     console.log(`🍔 Loghme Backend running on http://localhost:${PORT}`);
     console.log(`📡 WebSocket on ws://localhost:${PORT}/ws/tracking`);
+    console.log(`💾 DB: PostgreSQL via Prisma`);
+    console.log(`🧠 Cache: ${isCloudRedis ? 'cloud Redis' : 'in-memory fallback'}`);
 });
 
 process.on('SIGINT', async () => {
     console.log('\n[Server] shutting down...');
     await prisma.$disconnect();
-    redis.disconnect();
+    try { redis.disconnect(); } catch {}
     httpServer.close(() => process.exit(0));
 });
