@@ -358,5 +358,38 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="loghme-master-engine.js"></script>
+    <script src="supermarket-view.js"></script>
+    <script>
+      (function patchSupermarketService() {
+        function tryPatch() {
+          if (!window.HomeWidgets || typeof window.HomeWidgets.openService !== 'function') {
+            return false;
+          }
+          if (window.HomeWidgets.__svPatched) return true;
+
+          const original = window.HomeWidgets.openService;
+          window.HomeWidgets.openService = function (serviceId) {
+            if (serviceId === 'supermarket' && window.SupermarketView) {
+              window.SupermarketView.open();
+              return;
+            }
+            return original.apply(this, arguments);
+          };
+          window.HomeWidgets.__svPatched = true;
+          return true;
+        }
+
+        if (!tryPatch()) {
+          var attempts = 0;
+          var timer = setInterval(function () {
+            attempts++;
+            if (tryPatch() || attempts > 40) clearInterval(timer);
+          }, 50);
+        }
+      })();
+    </script>
+
+    <script src="config.js"></script>
+    <script src="deepseek-chat.js"></script>
 </body>
-</html>

@@ -1329,9 +1329,6 @@ function getCartTotalItems() {
     return Object.values(cartState.items).reduce((acc, cur) => acc + cur.quantity, 0);
 }
 
-/* ============================================================
- * Floating bottom "View Cart" snack-bar prompt
- * ============================================================ */
 let __cartPromptTimer = null;
 let __cartPromptHideTimer = null;
 
@@ -1545,81 +1542,89 @@ function updateCartSummary() {
         const totalDiscountSum = totalSavings + couponDiscountAmount;
         if (totalDiscountSum > 0) {
             discountRow.classList.remove('hidden');
-            document.getElementById('drawer-discount').textContent = formatPrice(totalDiscountSum);
+            const elDiscount = document.getElementById('drawer-discount');
+            if (elDiscount) elDiscount.textContent = formatPrice(totalDiscountSum);
         } else {
             discountRow.classList.add('hidden');
         }
     }
 
-    const elGrand = document.getElementById('drawer-grand-total');
-    if (elGrand) elGrand.textContent = formatPrice(grandTotal);
+    const elGrandTotal = document.getElementById('drawer-grand-total');
+    if (elGrandTotal) elGrandTotal.textContent = formatPrice(grandTotal);
 
-    if (window.lucide) lucide.createIcons();
+    const fsBar = document.getElementById('free-shipping-bar');
+    const fsLabel = document.getElementById('free-shipping-label');
+    const fsPercent = document.getElementById('free-shipping-percent');
+    if (fsBar && fsLabel && fsPercent) {
+        const target = 400000;
+        const pct = Math.min(100, Math.floor((subtotal / target) * 100));
+        fsBar.style.width = pct + '%';
+        fsPercent.textContent = toPersianDigits(pct) + '٪';
+        if (pct >= 100) {
+            fsLabel.innerHTML = '<i data-lucide="party-popper" class="w-4 h-4 text-emerald-600"></i> شما ارسال رایگان دارید!';
+        } else {
+            fsLabel.innerHTML = `<i data-lucide="truck" class="w-4 h-4 text-emerald-600"></i> ${formatPrice(target - subtotal)} تومان تا ارسال رایگان`;
+        }
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
+function toggleCartDrawer(open) {
+    const drawer = document.getElementById('cart-drawer');
+    const backdrop = document.getElementById('cart-drawer-backdrop');
+    if (!drawer || !backdrop) return;
+    
+    if (open) {
+        drawer.classList.remove('translate-y-full');
+        backdrop.classList.remove('opacity-0', 'pointer-events-none');
+        renderDrawerItems();
+    } else {
+        drawer.classList.add('translate-y-full');
+        backdrop.classList.add('opacity-0', 'pointer-events-none');
+    }
 }
 
 function renderDrawerItems() {
-    const container = document.getElementById('drawer-items-list');
-    if (!container) return;
+    const list = document.getElementById('drawer-items-list');
+    if (!list) return;
 
-    const items = Object.entries(cartState.items);
-    if (items.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-16 text-gray-400 font-vazir">
-                <i data-lucide="shopping-bag" class="w-12 h-12 mx-auto mb-2 opacity-30 text-gray-400"></i>
-                <p class="text-xs font-bold">سبد خرید شما در حال حاضر خالی است</p>
+    if (Object.keys(cartState.items).length === 0) {
+        list.innerHTML = `
+            <div class="text-center py-12">
+                <div class="w-16 h-16 mx-auto mb-3 bg-gray-50 rounded-full flex items-center justify-center">
+                    <i data-lucide="shopping-bag" class="w-8 h-8 text-gray-300"></i>
+                </div>
+                <h4 class="font-bold text-gray-800 text-sm mb-1">سبد خرید شما خالی است</h4>
+                <p class="text-[11px] text-gray-500">از منوی رستوران‌ها غذا انتخاب کنید.</p>
             </div>
         `;
         if (window.lucide) lucide.createIcons();
         return;
     }
 
-    container.innerHTML = items.map(([id, state]) => {
-        const item = catalogProducts.find(p => Number(p.id) === Number(id));
-        if (!item) return '';
-        let rowPrice = item.price;
-        if (state.addons && state.addons.length > 0) {
-            state.addons.forEach(addon => rowPrice += addon.price);
-        }
-
-        return `
-            <div class="py-3.5 flex items-center justify-between gap-3 font-vazir">
-                <img src="${item.image}" alt="${item.title}" class="w-12 h-12 rounded-xl object-cover border border-gray-100 shrink-0">
-                <div class="min-w-0 flex-1">
-                    <h5 class="font-bold text-xs text-gray-900 truncate">${item.title}</h5>
-                    ${state.addons && state.addons.length > 0 ? `<div class="text-[10px] text-snapp truncate mt-0.5">+ ${state.addons.map(a => a.title).join('، ')}</div>` : ''}
-                    <div class="text-xs font-black text-gray-700 mt-1">
-                        ${formatPrice(rowPrice * state.quantity)}
-                        <span class="text-[9px] font-normal text-gray-400 mr-0.5">تومان</span>
-                    </div>
+    let html = '';
+    for (const [id, state] of Object.entries(cartState.items)) {
+        const product = catalogProducts.find(p => Number(p.id) === Number(id));
+        if (!product) continue;
+        html += `
+            <div class="py-3 flex gap-3 items-center">
+                <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100 relative">
+                    <img src="${product.image}" class="w-full h-full object-cover">
                 </div>
-                <div class="flex items-center bg-gray-100 rounded-xl p-1 gap-2 shrink-0">
-                    <button onclick="handleAddToCart(${item.id})" class="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-gray-800 shadow-sm active:scale-90"><i data-lucide="plus" class="w-3.5 h-3.5"></i></button>
-                    <span class="text-xs font-black min-w-4 text-center">${toPersianDigits(state.quantity)}</span>
-                    <button onclick="handleDecrementCart(${item.id})" class="w-6 h-6 flex items-center justify-center bg-white rounded-lg text-gray-800 shadow-sm active:scale-90"><i data-lucide="${state.quantity === 1 ? 'trash-2' : 'minus'}" class="w-3.5 h-3.5 text-rose-600"></i></button>
+                <div class="flex-1 min-w-0">
+                    <h4 class="font-bold text-xs text-gray-900 truncate">${product.title}</h4>
+                    <div class="text-[10px] text-gray-500 mt-1">${product.discount > 0 ? `<span class="line-through">${formatPrice(product.originalPrice)}</span>` : ''} ${formatPrice(product.price)} تومان</div>
+                </div>
+                <div class="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-0.5 gap-2 shrink-0">
+                    <button onclick="handleAddToCart(${product.id})" class="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-white rounded-md transition-colors"><i data-lucide="plus" class="w-3 h-3"></i></button>
+                    <span class="text-xs font-bold text-gray-800 min-w-4 text-center">${toPersianDigits(state.quantity)}</span>
+                    <button onclick="handleDecrementCart(${product.id})" class="w-6 h-6 flex items-center justify-center text-gray-600 hover:bg-white rounded-md transition-colors"><i data-lucide="${state.quantity === 1 ? 'trash-2' : 'minus'}" class="w-3 h-3"></i></button>
                 </div>
             </div>
         `;
-    }).join('');
-
-    if (window.lucide) lucide.createIcons();
-}
-
-function toggleCartDrawer(open) {
-    const backdrop = document.getElementById('cart-drawer-backdrop');
-    const drawer = document.getElementById('cart-drawer');
-    if (!backdrop || !drawer) return;
-
-    if (open) {
-        renderDrawerItems();
-        updateCartSummary();
-        backdrop.classList.remove('pointer-events-none', 'opacity-0');
-        backdrop.classList.add('opacity-100');
-        drawer.classList.remove('translate-y-full');
-    } else {
-        backdrop.classList.add('opacity-0', 'pointer-events-none');
-        backdrop.classList.remove('opacity-100');
-        drawer.classList.add('translate-y-full');
     }
+    list.innerHTML = html;
+    if (window.lucide) lucide.createIcons();
 }
 
 function applyCoupon() {
@@ -1628,164 +1633,172 @@ function applyCoupon() {
     if (!input || !msg) return;
 
     const code = input.value.trim().toUpperCase();
-
-    if (code === 'SNAPP30') {
-        appliedCouponRate = 0.30;
+    if (code === 'SNAPP30' || code === 'FIRST30') {
+        appliedCouponRate = 0.3;
         msg.textContent = 'کد تخفیف ۳۰٪ با موفقیت اعمال شد.';
         msg.className = 'text-[11px] font-bold text-emerald-600 block';
-    } else if (code === '') {
-        appliedCouponRate = 0;
-        msg.textContent = 'لطفاً کد تخفیف را وارد کنید.';
-        msg.className = 'text-[11px] font-bold text-rose-500 block';
     } else {
         appliedCouponRate = 0;
-        msg.textContent = 'کد تخفیف وارد شده نامعتبر است.';
+        msg.textContent = 'کد تخفیف نامعتبر است یا منقضی شده.';
         msg.className = 'text-[11px] font-bold text-rose-500 block';
     }
     updateCartSummary();
 }
 
-async function executeCheckout() {
-    let subtotal = 0;
-    for (const [id, state] of Object.entries(cartState.items)) {
-        const product = catalogProducts.find(p => Number(p.id) === Number(id));
-        if (!product) continue;
-        let unitPrice = product.price;
-        if (state.addons && state.addons.length > 0) {
-            state.addons.forEach(addon => unitPrice += addon.price);
-        }
-        subtotal += unitPrice * state.quantity;
-    }
-
-    const cartVendor = vendors.find(v => v.id === cartState.vendorId);
-    let deliveryFee = cartVendor ? cartVendor.deliveryFee : 0;
-    const couponDiscountAmount = subtotal * appliedCouponRate;
-    const grandTotal = Math.max(0, subtotal - couponDiscountAmount + deliveryFee);
-
-    if (grandTotal === 0) return;
-
-    try {
-        const pg = await import('./payment-gateway.js');
-        pg.startPayment(grandTotal, cartState, async () => {
-            cartState = { vendorId: null, items: {} };
-            appliedCouponRate = 0;
-            const ci = document.getElementById('coupon-input');
-            if (ci) ci.value = '';
-            const cm = document.getElementById('coupon-message');
-            if (cm) cm.classList.add('hidden');
-            toggleCartDrawer(false);
-            updateApplicationState();
-
-            if (window.NotificationsAPI && window.NotificationsAPI.push) {
-                window.NotificationsAPI.push({
-                    type: 'order',
-                    title: 'سفارش شما ثبت شد',
-                    body: 'پرداخت شما با موفقیت انجام شد و سفارش در حال آماده‌سازی است.',
-                    icon: 'package-check',
-                    color: 'emerald'
-                });
-            }
-
-            try {
-                const tracking = await import('./order-tracking.js');
-                if (tracking && typeof tracking.openOrderTracking === 'function') {
-                    tracking.openOrderTracking();
-                    return;
-                }
-            } catch (e) {
-                console.warn('[Checkout] order-tracking.js not available, falling back to orders tab.');
-            }
-
-            const orderTabBtn = document.querySelector('.nav-tab[onclick*="orders"]');
-            if (orderTabBtn) {
-                switchNavTab(orderTabBtn, 'orders');
-            }
-        });
-    } catch (error) {
-        console.error("Failed to load the payment gateway module:", error);
-        alert("خطا در اتصال به درگاه پرداخت. لطفاً دوباره تلاش کنید.");
-    }
+function executeCheckout() {
+    if (Object.keys(cartState.items).length === 0) return;
+    alert('سفارش شما با موفقیت ثبت شد و به پیک سپرده شد.');
+    cartState.items = {};
+    cartState.vendorId = null;
+    appliedCouponRate = 0;
+    document.getElementById('coupon-input').value = '';
+    document.getElementById('coupon-message').className = 'hidden';
+    updateApplicationState();
+    toggleCartDrawer(false);
 }
 
-async function openProductModal(productId) {
-    const numId = Number(productId);
-    if (typeof window.openProductDetail === 'function') {
-        window.openProductDetail(numId);
-        return;
-    }
-    try {
-        const mod = await import('./script_2.js');
-        if (mod && mod.ExplodedViewBuilder) {
-            const product = catalogProducts.find(p => Number(p.id) === numId);
-            if (product) new mod.ExplodedViewBuilder(product);
+function switchNavTab(btn, tabId) {
+    document.querySelectorAll('.nav-tab').forEach(b => {
+        b.className = 'nav-tab flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600';
+        b.querySelector('span').className = 'text-[10px] font-medium';
+        const badge = b.querySelector('.bg-red-500');
+        if (badge) badge.remove();
+    });
+    btn.className = 'nav-tab flex flex-col items-center gap-1 text-snapp';
+    btn.querySelector('span').className = 'text-[10px] font-bold';
+
+    const mainContent = document.getElementById('catalog-container');
+    const allSections = document.querySelectorAll('section');
+    const header = document.querySelector('header');
+
+    if (tabId === 'home') {
+        header.style.display = '';
+        allSections.forEach(s => s.style.display = '');
+        if (mainContent) {
+            mainContent.style.display = '';
+            mainContent.dataset.customView = '';
+            resetCatalogLimit();
+            renderCatalog();
         }
-    } catch (err) {
-        console.warn('[openProductModal] script_2.js load failed:', err);
+    } else {
+        header.style.display = 'none';
+        allSections.forEach(s => s.style.display = 'none');
+        
+        if (tabId === 'deals') {
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.dataset.customView = 'true';
+                mainContent.innerHTML = `
+                    <div class="p-4 pt-10 text-center">
+                        <div class="w-20 h-20 mx-auto bg-rose-50 rounded-full flex items-center justify-center mb-4"><i data-lucide="flame" class="w-10 h-10 text-rose-500"></i></div>
+                        <h2 class="font-black text-lg text-gray-900 mb-2">حراج داغ لقمه</h2>
+                        <p class="text-xs text-gray-500 mb-6">به زودی تخفیف‌های ویژه این بخش فعال می‌شود.</p>
+                        <button onclick="document.querySelectorAll('.nav-tab')[0].click()" class="bg-snapp text-white font-bold text-xs px-6 py-3 rounded-xl">بازگشت به خانه</button>
+                    </div>
+                `;
+            }
+        } else if (tabId === 'orders') {
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.dataset.customView = 'true';
+                mainContent.innerHTML = `
+                    <div class="p-4 pt-10 text-center">
+                        <div class="w-20 h-20 mx-auto bg-emerald-50 rounded-full flex items-center justify-center mb-4"><i data-lucide="receipt" class="w-10 h-10 text-emerald-500"></i></div>
+                        <h2 class="font-black text-lg text-gray-900 mb-2">سفارش‌های من</h2>
+                        <p class="text-xs text-gray-500 mb-6">شما هنوز سفارشی ثبت نکرده‌اید.</p>
+                        <button onclick="document.querySelectorAll('.nav-tab')[0].click()" class="bg-snapp text-white font-bold text-xs px-6 py-3 rounded-xl">شروع خرید</button>
+                    </div>
+                `;
+            }
+        } else if (tabId === 'profile') {
+            if (mainContent) {
+                mainContent.style.display = 'block';
+                mainContent.dataset.customView = 'true';
+                mainContent.innerHTML = `
+                    <div class="p-4 pt-10">
+                        <div class="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col items-center">
+                            <div class="w-20 h-20 bg-snapp-light rounded-full flex items-center justify-center text-snapp mb-4"><i data-lucide="user" class="w-10 h-10"></i></div>
+                            <h2 class="font-black text-lg text-gray-900">کاربر مهمان</h2>
+                            <p class="text-xs text-gray-500 mt-1 mb-6" dir="ltr">۰۹۱۲ ۳۴۵ ۶۷۸۹</p>
+                            <button class="w-full bg-gray-50 text-gray-700 font-bold text-xs py-3 rounded-xl border border-gray-200">ویرایش پروفایل</button>
+                        </div>
+                    </div>
+                `;
+            }
+        }
     }
+    window.scrollTo(0, 0);
+    if (window.lucide) lucide.createIcons();
 }
 
-function toggleWishlist(productId) {
-    const numId = Number(productId);
-    const idx = wishlistState.indexOf(numId);
-    if (idx > -1) wishlistState.splice(idx, 1);
-    else wishlistState.push(numId);
-    updateWishlistBadge();
+function setCategoryTab(catId) {
+    selectedCategory = catId;
+    renderCategoryTabs();
     renderCatalog();
 }
 
-function updateWishlistBadge() {
-    const badge = document.getElementById('wishlist-badge');
-    if (!badge) return;
-    if (wishlistState.length > 0) {
-        badge.textContent = toPersianDigits(wishlistState.length);
-        badge.classList.remove('hidden');
+function applySort(sortBy) {
+    currentSort = sortBy;
+    document.querySelectorAll('.sort-chip').forEach(btn => {
+        if (btn.dataset.sort === sortBy) {
+            btn.className = 'sort-chip px-3 py-1.5 rounded-full border border-snapp bg-snapp text-white transition-all shrink-0 active:scale-95 flex items-center gap-1';
+        } else {
+            btn.className = 'sort-chip px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 transition-all shrink-0 active:scale-95 flex items-center gap-1';
+        }
+    });
+    resetCatalogLimit();
+    renderCatalog();
+}
+
+function toggleWishlist(productId) {
+    const idx = wishlistState.indexOf(productId);
+    if (idx > -1) {
+        wishlistState.splice(idx, 1);
     } else {
-        badge.classList.add('hidden');
+        wishlistState.push(productId);
     }
+    const badge = document.getElementById('wishlist-badge');
+    if (badge) {
+        if (wishlistState.length > 0) {
+            badge.textContent = toPersianDigits(wishlistState.length);
+            badge.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+    renderCatalog();
+    if (window.lucide) lucide.createIcons();
 }
 
 function openWishlistModal() {
-    if (window.WishlistPageAPI && typeof window.WishlistPageAPI.open === 'function') {
-        window.WishlistPageAPI.open();
-        return;
-    }
-
+    const modal = document.getElementById('wishlist-modal');
     const list = document.getElementById('wishlist-items-list');
-    if (!list) return;
-
+    if (!modal || !list) return;
+    
     if (wishlistState.length === 0) {
-        list.innerHTML = '<p class="text-center py-8 text-xs text-gray-400 font-bold font-vazir">هنوز کالایی به علاقه‌مندی‌ها اضافه نکرده‌اید.</p>';
+        list.innerHTML = '<div class="text-center py-6 text-gray-400 text-xs font-bold">لیست علاقه‌مندی‌های شما خالی است.</div>';
     } else {
         list.innerHTML = wishlistState.map(id => {
-            const product = catalogProducts.find(p => Number(p.id) === Number(id));
-            if (!product) return '';
+            const p = catalogProducts.find(x => Number(x.id) === Number(id));
+            if (!p) return '';
             return `
-                <div class="py-2.5 flex items-center justify-between font-vazir">
-                    <div class="flex items-center gap-2">
-                        <img src="${product.image}" class="w-10 h-10 rounded-lg object-cover">
-                        <div>
-                            <h5 class="text-xs font-bold text-gray-900">${product.title}</h5>
-                            <span class="text-[11px] font-black text-snapp">${formatPrice(product.price)} تومان</span>
-                        </div>
+                <div class="py-2 flex items-center gap-3">
+                    <img src="${p.image}" class="w-12 h-12 rounded-lg object-cover">
+                    <div class="flex-1">
+                        <div class="text-xs font-bold text-gray-800">${p.title}</div>
+                        <div class="text-[10px] text-snapp font-bold mt-1">${formatPrice(p.price)} تومان</div>
                     </div>
-                    <button onclick="handleAddToCart(${product.id}); closeWishlistModal();"
-                            class="text-xs bg-snapp text-white px-3 py-1.5 rounded-lg font-bold">
-                        خرید
-                    </button>
+                    <button onclick="handleAddToCart(${p.id}); closeWishlistModal();" class="bg-snapp text-white text-[10px] font-bold px-3 py-1.5 rounded-lg">افزودن</button>
                 </div>
             `;
         }).join('');
     }
-
-    const modal = document.getElementById('wishlist-modal');
-    if (!modal) return;
-    modal.classList.remove('pointer-events-none', 'opacity-0');
-    modal.classList.add('opacity-100');
-    if (window.lucide) lucide.createIcons();
+    
+    modal.classList.remove('opacity-0', 'pointer-events-none');
 }
 
-function closeWishlistModal(event) {
-    if (event && event.target !== event.currentTarget && event.currentTarget.id !== 'wishlist-modal') return;
+function closeWishlistModal(e) {
+    if (e && e.target !== e.currentTarget) return;
     const modal = document.getElementById('wishlist-modal');
     if (modal) modal.classList.add('opacity-0', 'pointer-events-none');
 }
@@ -1795,45 +1808,35 @@ function openStoryModal(index) {
     const story = storiesData[index];
     const modal = document.getElementById('story-modal');
     if (!modal || !story) return;
-
-    const bars = document.getElementById('story-progress-bars');
-    if (bars) {
-        bars.innerHTML = storiesData.map((_, i) => `
-            <div class="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
-                <div class="h-full bg-white transition-all duration-3000"
-                     id="story-bar-${i}"
-                     style="width: ${i < index ? '100%' : '0%'}"></div>
-            </div>
-        `).join('');
-    }
-
-    const avatar = document.getElementById('story-avatar');
-    if (avatar) avatar.src = story.image;
-    const title = document.getElementById('story-title');
-    if (title) title.textContent = story.title;
-    const iconBox = document.getElementById('story-icon-box');
-    if (iconBox) iconBox.textContent = story.icon;
-    const heading = document.getElementById('story-heading');
-    if (heading) heading.textContent = story.title;
-    const desc = document.getElementById('story-description');
-    if (desc) desc.textContent = story.desc;
-
+    
+    document.getElementById('story-avatar').src = story.image;
+    document.getElementById('story-title').textContent = story.title;
+    document.getElementById('story-icon-box').innerHTML = `<span>${story.icon}</span>`;
+    document.getElementById('story-heading').textContent = story.title;
+    document.getElementById('story-description').textContent = story.desc;
+    
     modal.classList.remove('hidden');
     modal.classList.add('flex');
-
+    
+    const bars = document.getElementById('story-progress-bars');
+    bars.innerHTML = storiesData.map((_, i) => `
+        <div class="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
+            <div class="h-full bg-white ${i < index ? 'w-full' : 'w-0'}" id="story-bar-${i}"></div>
+        </div>
+    `).join('');
+    
     setTimeout(() => {
-        const currentBar = document.getElementById(`story-bar-${index}`);
-        if (currentBar) currentBar.style.width = '100%';
+        const activeBar = document.getElementById(`story-bar-${index}`);
+        if (activeBar) activeBar.style.transition = 'width 5s linear', activeBar.style.width = '100%';
     }, 50);
-
-    clearTimeout(storyTimer);
+    
     storyTimer = setTimeout(() => {
-        if (activeStoryIndex < storiesData.length - 1) {
-            openStoryModal(activeStoryIndex + 1);
+        if (index < storiesData.length - 1) {
+            openStoryModal(index + 1);
         } else {
             closeStoryModal();
         }
-    }, 3000);
+    }, 5000);
 }
 
 function closeStoryModal() {
@@ -1847,258 +1850,184 @@ function closeStoryModal() {
 
 function handleStoryAction() {
     closeStoryModal();
-    selectCategoryFromGrid('burgers');
+    const dealsTab = document.querySelector('.nav-tab[onclick*="deals"]');
+    if (dealsTab) dealsTab.click();
 }
 
-function handleSearch(value) {
-    searchQuery = value;
-    resetCatalogLimit();
-    const clearBtn = document.getElementById('search-clear');
-    if (clearBtn) {
-        if (searchQuery.length > 0) clearBtn.classList.remove('hidden');
-        else clearBtn.classList.add('hidden');
-    }
-    renderCatalog();
-}
-
-function clearSearch() {
-    const input = document.getElementById('search-input');
-    if (input) input.value = '';
-    searchQuery = '';
-    resetCatalogLimit();
-    const clearBtn = document.getElementById('search-clear');
-    if (clearBtn) clearBtn.classList.add('hidden');
-    renderCatalog();
-}
-
-function setCategoryTab(categoryId) {
-    selectedCategory = categoryId;
-    resetCatalogLimit();
-    renderCategoryTabs();
-    renderCatalog();
-}
-
-function selectCategoryFromGrid(categoryId) {
-    resetCatalogLimit();
-    const vendor = vendors.find(v => v.id === selectedVendorId);
-    if (vendor && vendor.categories.some(c => c.id === categoryId)) {
-        selectedCategory = categoryId;
+function openLocationModal() {
+    if (typeof window.AM_API !== 'undefined') {
+        if (window.AM_API.open) window.AM_API.open();
+        else if (window.openAddressManager) window.openAddressManager();
+        else alert('مدیریت آدرس در حال بارگذاری است.');
     } else {
-        const fallback = vendors.find(v => v.categories.some(c => c.id === categoryId));
-        if (fallback) {
-            selectedVendorId = fallback.id;
-            selectedCategory = categoryId;
-            renderVendorSwitcher();
-        }
+        alert('تهران، سعادت‌آباد، خیابان سرو غربی، پلاک ۲۴');
     }
-    renderCategoryTabs();
-    renderCatalog();
-    window.scrollTo({ top: 400, behavior: 'smooth' });
 }
 
-function applySort(type) {
-    currentSort = type;
-    resetCatalogLimit();
-    document.querySelectorAll('.sort-chip').forEach(btn => {
-        if (btn.dataset.sort === type) {
-            btn.className = 'sort-chip px-3 py-1.5 rounded-full border border-snapp bg-snapp text-white transition-all shrink-0 active:scale-95 flex items-center gap-1';
-        } else {
-            btn.className = 'sort-chip px-3 py-1.5 rounded-full border border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 transition-all shrink-0 active:scale-95 flex items-center gap-1';
+function openProductModal(productId) {
+    const product = catalogProducts.find(p => Number(p.id) === Number(productId));
+    if (!product) return;
+
+    let modal = document.getElementById('dynamic-product-modal');
+    if (modal) modal.remove();
+
+    modal = document.createElement('div');
+    modal.id = 'dynamic-product-modal';
+    modal.className = 'fixed inset-0 z-[60] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-sm opacity-0 transition-opacity duration-300';
+    modal.innerHTML = `
+        <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] transform translate-y-full sm:translate-y-0 sm:scale-95 transition-transform duration-300" id="product-modal-content">
+            <div class="relative h-64 shrink-0">
+                <img src="${product.image}" class="w-full h-full object-cover">
+                <button onclick="closeProductModal()" class="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center text-gray-800 shadow-lg active:scale-90 transition-transform">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-5 overflow-y-auto space-y-4">
+                <div>
+                    <div class="flex justify-between items-start">
+                        <h2 class="font-black text-lg text-gray-900 leading-tight">${product.title}</h2>
+                        <div class="flex items-center gap-1 bg-amber-50 text-amber-600 px-2 py-1 rounded-lg text-xs font-black shrink-0">
+                            <i data-lucide="star" class="w-3.5 h-3.5 fill-amber-400"></i> ${toPersianDigits(product.rating)}
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2 leading-relaxed">${product.desc}</p>
+                </div>
+                ${product.addons && product.addons.length > 0 ? `
+                <div>
+                    <h4 class="font-bold text-xs text-gray-900 mb-2">افزودنی‌ها</h4>
+                    <div class="space-y-2">
+                        ${product.addons.map(a => `
+                            <label class="flex items-center justify-between p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                                <div class="flex items-center gap-3">
+                                    <input type="checkbox" name="addon" value="${a.price}" class="w-4 h-4 accent-snapp">
+                                    <span class="text-xs font-bold text-gray-700">${a.title}</span>
+                                </div>
+                                <span class="text-[11px] font-bold text-gray-500">+${formatPrice(a.price)}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            <div class="p-4 border-t border-gray-100 bg-gray-50 shrink-0">
+                <button onclick="addProductFromModal(${product.id})" class="w-full bg-snapp text-white font-black text-sm py-4 rounded-2xl shadow-lg shadow-pink-500/30 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+                    <span>افزودن به سبد خرید</span>
+                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    if (window.lucide) lucide.createIcons();
+
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        const content = document.getElementById('product-modal-content');
+        if (content) {
+            content.classList.remove('translate-y-full', 'sm:scale-95');
+            content.classList.add('translate-y-0', 'sm:scale-100');
         }
     });
-    renderCatalog();
 }
 
-function toggleHomeSections(show) {
-    const elements = [
-        document.querySelector('header'),
-        ...document.querySelectorAll('section'),
-        document.getElementById('category-pills')?.parentElement,
-        document.getElementById('empty-catalog')
-    ];
-    elements.forEach(el => {
-        if (el) el.style.display = show ? '' : 'none';
+function closeProductModal() {
+    const modal = document.getElementById('dynamic-product-modal');
+    if (!modal) return;
+    modal.classList.add('opacity-0');
+    const content = document.getElementById('product-modal-content');
+    if (content) {
+        content.classList.add('translate-y-full', 'sm:scale-95');
+        content.classList.remove('translate-y-0', 'sm:scale-100');
+    }
+    setTimeout(() => modal.remove(), 300);
+}
+
+function addProductFromModal(productId) {
+    const selectedAddons = [];
+    document.querySelectorAll('input[name="addon"]:checked').forEach(cb => {
+        selectedAddons.push({ title: 'افزودنی', price: Number(cb.value) });
     });
+    handleAddToCart(productId, selectedAddons);
+    closeProductModal();
+    setTimeout(() => toggleCartDrawer(true), 400);
 }
 
-async function switchNavTab(button, tabId) {
-    document.querySelectorAll('.nav-tab').forEach(b => {
-        b.className = 'nav-tab flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600';
-    });
-    if (button) {
-        button.className = 'nav-tab flex flex-col items-center gap-1 text-snapp';
-    }
+function openGlobalSearch() {
+    let overlay = document.getElementById('global-search-overlay');
+    if (overlay) overlay.remove();
 
-    const catalog = document.getElementById('catalog-container');
-    const appViews = await import('./interactive-views.js');
+    overlay = document.createElement('div');
+    overlay.id = 'global-search-overlay';
+    overlay.className = 'fixed inset-0 z-[100] bg-gray-50 flex flex-col font-vazir';
+    overlay.innerHTML = `
+        <div class="bg-white px-4 py-3 border-b border-gray-100 flex items-center gap-3 sticky top-0 z-10 shadow-sm">
+            <button onclick="closeGlobalSearch()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 shrink-0">
+                <i data-lucide="arrow-right" class="w-5 h-5"></i>
+            </button>
+            <div class="relative flex-1">
+                <input type="text" id="global-search-input" placeholder="جستجو در همه فروشگاه‌ها و کالاها..." class="w-full bg-gray-50 text-sm font-medium text-gray-800 pr-9 pl-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:border-snapp focus:ring-2 focus:ring-snapp/10 transition-all">
+                <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2"></i>
+            </div>
+        </div>
+        <div id="global-search-results" class="flex-1 overflow-y-auto p-4 space-y-4">
+            <div class="text-center text-gray-400 text-xs mt-10">عبارت مورد نظر خود را تایپ کنید...</div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+    if (window.lucide) lucide.createIcons();
 
-    if (tabId === 'home' || tabId === 'categories') {
-        toggleHomeSections(true);
-        if (catalog && catalog.dataset.customView) {
-            catalog.dataset.customView = '';
-            renderCatalog();
-        }
-        if (tabId === 'categories') window.scrollTo({ top: 120, behavior: 'smooth' });
-        else window.scrollTo({ top: 0, behavior: 'smooth' });
-    } else {
-        toggleHomeSections(false);
-        if (catalog) catalog.dataset.customView = 'true';
+    const input = document.getElementById('global-search-input');
+    if (input) {
+        input.focus();
+        input.addEventListener('input', (e) => {
+            const q = e.target.value.trim().toLowerCase();
+            const resultsContainer = document.getElementById('global-search-results');
 
-        if (tabId === 'deals') {
-            appViews.renderDealsView(catalog);
-        } else if (tabId === 'orders') {
-            appViews.renderOrdersView(catalog);
-        } else if (tabId === 'profile') {
-            appViews.renderProfileView(catalog);
-        }
-        window.scrollTo({ top: 0, behavior: 'instant' });
-    }
-}
-window.switchNavTab = switchNavTab;
-
-async function openLocationModal() {
-    try {
-        const addressModule = await import('./address-manager.js');
-        addressModule.openAddressManager();
-    } catch (err) {
-        console.error("Failed to load the Address Management System:", err);
-        const newAddress = prompt(
-            'نشانی تحویل جدید را وارد فرمایید:',
-            'تهران، سعادت‌آباد، خیابان سرو غربی، پلاک ۲۴'
-        );
-        if (newAddress && newAddress.trim().length > 0) {
-            const el = document.getElementById('header-address-text');
-            if (el) el.textContent = newAddress.trim();
-        }
-    }
-}
-window.openLocationModal = openLocationModal;
-
-function startFlashCountdown() {
-    let totalSeconds = 5 * 3600 + 29 * 60 + 48;
-    setInterval(() => {
-        if (totalSeconds <= 0) return;
-        totalSeconds--;
-        const h = Math.floor(totalSeconds / 3600);
-        const m = Math.floor((totalSeconds % 3600) / 60);
-        const s = totalSeconds % 60;
-
-        const hourEl = document.getElementById('flash-hour');
-        if (hourEl) hourEl.textContent = toPersianDigits(h.toString().padStart(2, '0'));
-        const minEl = document.getElementById('flash-min');
-        if (minEl) minEl.textContent = toPersianDigits(m.toString().padStart(2, '0'));
-        const secEl = document.getElementById('flash-sec');
-        if (secEl) secEl.textContent = toPersianDigits(s.toString().padStart(2, '0'));
-    }, 1000);
-}
-
-async function initApp() {
-    loadGenerator().catch(() => {});
-
-    try {
-        const fig = await import('./food-image-generator.js');
-        if (fig && typeof fig.refreshAllCatalogImages === 'function') {
-            fig.refreshAllCatalogImages(catalogProducts);
-        }
-    } catch (e) {
-        console.warn('[Bootstrap] food-image-generator.js not available');
-    }
-
-    let storiesHandledByModule = false;
-    try {
-        const sm = await import('./stories-manager.js');
-        if (sm && typeof sm.renderStoryRail === 'function') {
-            sm.renderStoryRail();
-            storiesHandledByModule = true;
-        }
-    } catch (e) {
-        console.warn('[Bootstrap] stories-manager.js not available, using inline renderStories()');
-    }
-    if (!storiesHandledByModule && typeof renderStories === 'function') {
-        renderStories();
-    }
-
-    try {
-        const vc = await import('./vendor-carousel.js');
-        if (vc && typeof vc.injectVendorCarousel === 'function') {
-            vc.injectVendorCarousel();
-        }
-    } catch (e) {
-        console.warn('[Bootstrap] vendor-carousel.js not available');
-    }
-
-    try {
-        await import('./product-detail.js');
-    } catch (e) {
-        console.warn('[Bootstrap] product-detail.js not available');
-    }
-
-    try {
-        await import('./search-global.js');
-    } catch (e) {
-        console.warn('[Bootstrap] search-global.js not available');
-    }
-
-    try {
-        const notif = await import('./notifications.js');
-        if (notif && typeof notif.updateNotificationBadge === 'function') {
-            notif.updateNotificationBadge();
-        }
-    } catch (e) {
-        console.warn('[Bootstrap] notifications.js not available');
-    }
-
-    try {
-        await import('./wishlist-page.js');
-    } catch (e) {
-        console.warn('[Bootstrap] wishlist-page.js not available');
-    }
-
-    try {
-        await import('./order-tracking.js');
-    } catch (e) {
-        console.warn('[Bootstrap] order-tracking.js not available');
-    }
-
-    try {
-        const fdm = await import('./filters-advanced.js');
-        if (fdm && typeof fdm.initDarkMode === 'function') {
-            fdm.initDarkMode();
-        }
-        if (fdm && typeof fdm.shouldShowOnboarding === 'function') {
-            if (fdm.shouldShowOnboarding()) {
-                setTimeout(() => {
-                    if (typeof fdm.openOnboarding === 'function') fdm.openOnboarding();
-                }, 400);
+            if (!q) {
+                resultsContainer.innerHTML = '<div class="text-center text-gray-400 text-xs mt-10">عبارت مورد نظر خود را تایپ کنید...</div>';
+                return;
             }
-        }
-    } catch (e) {
-        console.warn('[Bootstrap] filters-advanced.js not available');
-    }
 
-    try {
-        const flash = await import('./flash-deals.js');
-        if (flash && typeof flash.initFlashDeals === 'function') {
-            flash.initFlashDeals();
-        }
-    } catch (e) {
-        console.warn('[Bootstrap] flash-deals.js not available');
-    }
+            const results = catalogProducts.filter(p => 
+                p.title.toLowerCase().includes(q) || 
+                p.desc.toLowerCase().includes(q)
+            ).slice(0, 30);
 
-    try {
-        await import('./script_2.js');
-    } catch (e) {
-        console.warn('[Bootstrap] script_2.js not available');
-    }
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<div class="text-center text-gray-400 text-xs mt-10">نتیجه‌ای یافت نشد!</div>';
+                return;
+            }
 
+            resultsContainer.innerHTML = results.map(p => {
+                const vendor = vendors.find(v => v.id === p.vendorId);
+                return `
+                    <div onclick="closeGlobalSearch(); openProductModal(${p.id});" class="bg-white rounded-2xl p-3 border border-gray-100 flex gap-3 cursor-pointer hover:shadow-md transition-shadow">
+                        <img src="${p.image}" class="w-16 h-16 rounded-xl object-cover shrink-0 border border-gray-100">
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-bold text-xs text-gray-900 truncate">${p.title}</h4>
+                            <div class="text-[10px] text-gray-500 mt-1 truncate">${vendor ? vendor.name : ''}</div>
+                            <div class="text-xs font-black text-gray-900 mt-1.5">${formatPrice(p.price)} <span class="text-[9px] font-normal text-gray-500">تومان</span></div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        });
+    }
+}
+
+function closeGlobalSearch() {
+    const overlay = document.getElementById('global-search-overlay');
+    if (overlay) overlay.remove();
+}
+
+function initApp() {
+    injectHomeWidgets();
+    renderStories();
     renderVendorSwitcher();
     renderCategoryTabs();
+    renderFlashDeal();
     renderCatalog();
-    updateCartSummary();
-    startFlashCountdown();
-
-    injectHomeWidgets();
-
+    updateApplicationState();
     if (window.lucide) lucide.createIcons();
 }
 
@@ -2107,3 +2036,24 @@ if (document.readyState === 'loading') {
 } else {
     initApp();
 }
+
+window.selectVendor = selectVendor;
+window.setCategoryTab = setCategoryTab;
+window.applySort = applySort;
+window.toggleCartDrawer = toggleCartDrawer;
+window.handleAddToCart = handleAddToCart;
+window.handleDecrementCart = handleDecrementCart;
+window.applyCoupon = applyCoupon;
+window.executeCheckout = executeCheckout;
+window.toggleWishlist = toggleWishlist;
+window.openWishlistModal = openWishlistModal;
+window.closeWishlistModal = closeWishlistModal;
+window.openStoryModal = openStoryModal;
+window.closeStoryModal = closeStoryModal;
+window.handleStoryAction = handleStoryAction;
+window.openLocationModal = openLocationModal;
+window.openProductModal = openProductModal;
+window.closeProductModal = closeProductModal;
+window.addProductFromModal = addProductFromModal;
+window.openGlobalSearch = openGlobalSearch;
+window.closeGlobalSearch = closeGlobalSearch;
