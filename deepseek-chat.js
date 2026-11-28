@@ -23,6 +23,9 @@
   // ============================================================
   // CONFIG
   // ============================================================
+  // آدرس Cloudflare Worker خود را اینجا قرار دهید (مثلاً: 'https://loghme-ai.yourname.workers.dev')
+  const WORKER_PROXY_URL = 'https://loghme-ai.gholihashira.workers.dev';
+
   // کلیدها از فایل محلی config.js (خارج از گیت) خوانده می‌شوند
   function getRawApiKeys() {
     const cfg = global.__LOGHME_CONFIG__;
@@ -676,20 +679,21 @@
     return 'سرویس هوش مصنوعی در حال حاضر پاسخگو نیست. لطفاً دوباره تلاش کنید.';
   }
 
-  async function sendDirectGeminiStream(apiKey, model, payload, onChunk) {
-    const url = buildGeminiStreamUrl(apiKey, model);
+  async function sendDirectGeminiStream(apiKey, model, payload, onChunk, customUrl) {
+    const url = customUrl || buildGeminiStreamUrl(apiKey, model);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     try {
       let response;
+      const headers = { 'Content-Type': 'application/json' };
+      if (!customUrl && apiKey) {
+        headers['x-goog-api-key'] = apiKey;
+      }
       try {
         response = await fetch(url, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'x-goog-api-key': apiKey
-          },
+          headers,
           body: JSON.stringify(payload),
           signal: controller.signal
         });
@@ -794,11 +798,6 @@
   }
 
   async function requestChatFromGemini(userMessage, catalogContext, onChunk) {
-    const keys = getConfiguredKeys();
-    if (keys.length === 0) {
-      throw new Error('کلید API جمنای تنظیم نشده است.');
-    }
-
     const systemText = buildSystemInstruction(catalogContext, lastRecommendations);
     const contents = buildGeminiContents(chatHistory, userMessage);
 
@@ -812,6 +811,16 @@
         maxOutputTokens: 2048
       }
     };
+
+    const proxyUrl = (WORKER_PROXY_URL || '').trim();
+    if (proxyUrl) {
+      return await sendDirectGeminiStream('', GEMINI_MODELS[0], payload, onChunk, proxyUrl);
+    }
+
+    const keys = getConfiguredKeys();
+    if (keys.length === 0) {
+      throw new Error('کلید API جمنای تنظیم نشده است. آدرس Cloudflare Worker را در WORKER_PROXY_URL قرار دهید.');
+    }
 
     let lastError = null;
     for (let mAttempt = 0; mAttempt < GEMINI_MODELS.length; mAttempt++) {
